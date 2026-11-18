@@ -307,7 +307,20 @@ function B.start(op, args, on_done)
 end
 
 function B.cancel()
-  if B.busy() and B.in_ch then B.in_ch:push("cancel") end
+ if B.busy() and B.in_ch then B.in_ch:push("cancel");return true end
+ return false
+end
+function B.pause()
+ if B.busy() and B.job.op=='download' and B.job.phase=='download' and B.in_ch then
+  B.in_ch:push("pause");return true
+ end
+ return false
+end
+function B.resume()
+ if B.busy() and B.job.op=='download' and B.job.phase=='paused' and B.in_ch then
+  B.in_ch:push("resume");return true
+ end
+ return false
 end
 
 B.PHASE = {
@@ -411,6 +424,10 @@ function B.update()
   local m = B.out_ch:pop()
   while m do
     if m.t == "phase" then j.phase = m.phase; j.done, j.total = 0, m.total; j.samples = {}
+    elseif m.t == "paused" then
+      j.phase="paused";j.speed=0;j.eta=nil;j.samples={}
+    elseif m.t == "resumed" then
+      j.phase="download";j.samples={}
     elseif m.t == "progress" then
       j.done = m.done
       if m.total and m.total > 0 then j.total = m.total end
