@@ -8,10 +8,24 @@ local rom={pending='download',activeDownload={name='Teste ROM',card=2},downloade
 local bios={job=function() return {op='download',state='running',phase='download',done=50,total=200,t0=12} end}
 local es={transfer=function() return {task='install',job_id='unit001',name='Exemplo',phase='downloading',downloaded=25,total=100} end}
 local upd={status={phase='verifying',version='0.4.5-beta',downloaded=100,total=100}}
-m.poll(rom,bios,es,upd,{})
+m.poll(rom,bios,es,upd,{},10)
 assert(#m.active==4 and m.count()==4,'esperadas 4 transferências ativas')
 assert(m.active[2].kind=='bios' and m.active[2].done==50)
 assert(m.active[3].kind=='theme' and m.active[3].total==100)
+-- A velocidade deve surgir apenas com amostras reais, sem usar valores inventados.
+assert(m.rateText(m.active[1])=='—')
+rom.downloaded=80
+bios.job=function() return {op='download',state='running',phase='download',done=120,total=200,t0=12} end
+es.transfer=function() return {task='install',job_id='unit001',name='Exemplo',phase='downloading',downloaded=55,total=100} end
+m.poll(rom,bios,es,upd,{},12)
+assert(m.active[1].speed>0 and m.active[1].eta>0)
+assert(m.rateText(m.active[1]):find('KB/s',1,true))
+assert(m.etaText(m.active[1])~='—')
+rom.downloaded=20
+bios.job=function() return {op='download',state='running',phase='download',done=50,total=200,t0=12} end
+es.transfer=function() return {task='install',job_id='unit001',name='Exemplo',phase='downloading',downloaded=25,total=100} end
+m.poll(rom,bios,es,upd,{},13)
+assert(m.active[1].speed==0,'progresso reiniciado deve zerar velocidade')
 assert(m.current().kind=='rom','ROM em curso deve aparecer no Inicio')
 m.poll(nil,bios,nil,nil,{})
 assert(m.current() and m.current().kind=='bios','BIOS sem ROM deve aparecer no Inicio')
