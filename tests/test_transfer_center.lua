@@ -12,12 +12,18 @@ m.poll(rom,bios,es,upd,{})
 assert(#m.active==4 and m.count()==4,'esperadas 4 transferências ativas')
 assert(m.active[2].kind=='bios' and m.active[2].done==50)
 assert(m.active[3].kind=='theme' and m.active[3].total==100)
+assert(m.current().kind=='rom','ROM em curso deve aparecer no Inicio')
+m.poll(nil,bios,nil,nil,{})
+assert(m.current() and m.current().kind=='bios','BIOS sem ROM deve aparecer no Inicio')
+assert(m.current().done==50 and m.current().total==200,'BIOS deve compartilhar o progresso')
+m.poll(rom,bios,es,upd,{})
 bios={job=function() return {op='download',state='done',done=200,total=200,t0=12} end}
 es={transfer=function() return {task='install',job_id='unit001',name='Exemplo',phase='done'} end}
 upd={status={phase='ready',version='0.4.5-beta'}}
 rom.pending=nil
 m.poll(rom,bios,es,upd,{})
 assert(#m.active==0 and m.count()==3,'histórico após conclusão')
+assert(m.current()==nil,'Inicio nao deve mostrar transferencias concluidas')
 m.poll(rom,bios,es,upd,{})
 assert(m.count()==3,'não deve registrar históricos duplicados')
 -- Regressao: historico da 0.4.5 nao possuia done/total.
