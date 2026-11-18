@@ -313,6 +313,10 @@ function M.draw(header,lang)
     ui.buttonHint(558,447,'B',t('back'),45)
   elseif M.view=='system_files' then
     ui.buttonHint(260,447,'B',t('back'),73)
+  elseif B and B.job and B.job.state=='running' and B.job.op=='download' then
+    -- Sair continua o download na Central de Downloads; X cancela explicitamente.
+    ui.buttonHint(231,447,'B',t('back'),90)
+    ui.buttonHint(461,447,'X',t('cancel'),108)
   else
     ui.buttonHint(173,447,'L',t('tabs_hint'),67)
     ui.buttonHint(297,447,'A',t('open'),50)
@@ -364,6 +368,12 @@ function M.key(key)
     return true
   end
   if B and B.busy() then
+    if B.job and B.job.op=='download' then
+      -- B apenas fecha o gerenciador, mantendo a transferencia em segundo plano.
+      if key=='b' then return false end
+      if key=='x' then B.cancel();return true end
+      return true
+    end
     if key=='b' then B.cancel();return true end
     return true
   end
@@ -455,6 +465,11 @@ function M.mouse(x,y)
     return true
   end
   if y>=440 then
+    if B and B.busy() and B.job and B.job.op=='download' then
+      if x>=453 then M.key('x');return true end
+      if x>=205 then return false end
+      return true
+    end
     if x>545 then return false end
     if x<282 then M.key('l')
     elseif x<408 then M.key('a')
