@@ -1267,6 +1267,7 @@ local function studioContext()
     tr=tr,nav=menuPages,navIndex=menuIndex,navFocus=studioNavFocus or (screen=='home' and focus=='sidebar'),
     homeFocus=homeFocus,homeStatIndex=homeOverviewIndex,featuredIndex=homeSlideIndex,
     gameIndex=gameIndex,searchIndex=searchResultIndex,category=external.category,
+    categoryIndex=categoryIndex,focus=focus,
     games=external.games,results=external.searchResults,categories=external.categories,
     selectedGame=selectedGame,selectedCard=selectedCard,cover=cover,
     platformTitle=platformTitle,gameLocation=sdLocation,transferSelected=transferCenter.selected,
