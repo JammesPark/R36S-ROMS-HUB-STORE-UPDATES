@@ -113,7 +113,7 @@ fi
 UPDATE_RETRY=0
 while true; do
   rm -f "$APP/state/launch.request"
-  echo "Iniciando interface LÖVE 640x480..."
+  echo "Iniciando LÖVE: deteccao automatica de tela (layout-base 640x480)..."
   if [[ "$runtime" == portmaster ]]; then
     $LOVE_RUN "$APP/game.love"
     code=$?
