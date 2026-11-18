@@ -8,6 +8,22 @@ local function read(p)
   local f=io.open(p,'rb');if not f then return nil end
   local s=f:read('*a');f:close();return s
 end
+-- Entradas antigas nao incluem done/total. Nunca confiar em numeros vindos do JSON.
+local function num(n)
+  local value=tonumber(n) or 0
+  if value~=value or value==math.huge or value==-math.huge or value<0 then return 0 end
+  return value
+end
+function M.formatProgress(record)
+  record=type(record)=='table' and record or {}
+  local done,total=num(record.done),num(record.total)
+  if total>0 then
+    local percent=math.floor(math.min(100,(done/total)*100)+0.5)
+    return string.format('%d%%  %.1f / %.1f MB',percent,done/1048576,total/1048576),percent
+  end
+  if done>0 then return string.format('%.1f MB',done/1048576),nil end
+  return tostring(record.detail or ''),nil
+end
 local function serialize(rows)
   local function quote(v)
     return '"'..tostring(v or ''):gsub('\\','\\\\'):gsub('"','\\"'):gsub('[\n\r\t]', ' ')..'"'
@@ -17,7 +33,8 @@ local function serialize(rows)
     output[#output+1]='{'..table.concat({
       '"id":'..quote(r.id),'"kind":'..quote(r.kind),'"name":'..quote(r.name),
       '"phase":'..quote(r.phase),'"detail":'..quote(r.detail),
-      '"time":'..tostring(math.floor(tonumber(r.time) or 0))},',')..'}'
+      '"done":'..tostring(math.floor(num(r.done))),'"total":'..tostring(math.floor(num(r.total))),
+      '"time":'..tostring(math.floor(num(r.time)))},',')..'}'
   end
   return '['..table.concat(output,',')..']'
 end
@@ -34,7 +51,6 @@ local function add(record)
   while #M.history>40 do table.remove(M.history,1) end
   save()
 end
-local function num(n) return math.max(0,tonumber(n) or 0) end
 local function job(kind,name,phase,done,total,id,detail)
   return {kind=kind,name=tostring(name or kind),phase=phase or 'downloading',done=num(done),total=num(total),
     id=tostring(id or ''),detail=tostring(detail or ''),time=os.time()}
@@ -63,7 +79,12 @@ function M.init(home)
   if type(obj)=='table' then
     for _,r in ipairs(obj) do
       if type(r)=='table' and type(r.id)=='string' and type(r.kind)=='string' then
-        M.history[#M.history+1]=r;M.seen[r.id]=true
+        M.history[#M.history+1]={id=r.id,kind=r.kind,
+          name=type(r.name)=='string' and r.name or r.kind,
+          phase=type(r.phase)=='string' and r.phase or 'done',
+          detail=type(r.detail)=='string' and r.detail or '',
+          done=num(r.done),total=num(r.total),time=num(r.time)}
+        M.seen[r.id]=true
       end
     end
   end
@@ -107,7 +128,7 @@ function M.poll(rom,bios,es,updater,romhistory)
   for i=#(romhistory or {}),1,-1 do
     local r=romhistory[i]
     rows[#rows+1]=job('rom',r.name or 'ROM','done',0,0,'history-rom-'..i,
-      (r.card or ''):upper())
+      tostring(r.card or ''):upper())
   end
   M.active=active;M.rows=rows
   M.scroll=math.max(0,math.min(M.scroll,math.max(0,#rows-6)))

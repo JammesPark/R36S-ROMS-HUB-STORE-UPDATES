@@ -1,5 +1,10 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.7-beta — 18/11/2026
+- Corrigida tela azul em Downloads (main.lua:567), causada por historico antigo sem done/total.
+- Normalizacao de registros antigos, calculo seguro da porcentagem e preservacao do historico.
+- Mantidos ROMs, BIOS, temas, OTA e mecanismo de recuperacao.
+
 ## 0.4.6-beta — 18/11/2026
 - Atualização incremental para quem está exatamente na versão-base autorizada, com fallback completo para as demais versões.
 - Histórico de até 100 operações de atualização e recuperação.

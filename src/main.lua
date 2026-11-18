@@ -562,11 +562,10 @@ local function transfersPage()
       local kind=transferCenter.label(lang,item.kind)
       R(188,y+8,4,28,item.phase=='error' and theme.error or item.phase=='done' and theme.green or theme.accent,2)
       txt(kind,200,y+5,10,theme.accent,57)
-      txt(ui.ellipsize(item.name,39),257,y+5,11,theme.text,320)
-      local phase=transferCenter.label(lang,item.phase)
-      local percent=item.total>0 and math.floor(math.min(100,item.done*100/item.total)+.5) or nil
-      local progress=percent and string.format('%d%%  %.1f / %.1f MB',percent,item.done/1048576,item.total/1048576)
-        or (item.done>0 and string.format('%.1f MB',item.done/1048576)) or item.detail
+      txt(ui.ellipsize(tostring(item.name or item.kind or ''),39),257,y+5,11,theme.text,320)
+      local phase=transferCenter.label(lang,item.phase or 'done')
+      -- O historico antigo pode nao ter done/total; nao causar tela azul.
+      local progress,percent=transferCenter.formatProgress(item)
       txt(phase,201,y+24,9,item.phase=='error' and theme.error or item.phase=='done' and theme.green or theme.muted,107)
       txt(ui.ellipsize(progress,41),311,y+24,9,theme.muted,277)
       if item.phase~='done' and item.phase~='error' then
