@@ -1,5 +1,14 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.13-beta — 18/11/2026
+- Aplicado o conceito HTML aprovado da tela Início ao código Lua/LÖVE 11.5.
+- Novo "Em destaque" com três capas verticais 2:3 acima das contagens de jogos.
+- Contagens reais de Catálogo, Instalados e Favoritos organizadas em cartões inferiores.
+- Navegação pelo direcional e clique/toque nas capas abre a ROM correta.
+- Capas em Catálogo, Detalhes e Favoritos preservam a proporção e não são esticadas.
+- Painel de download e métricas de velocidade/ETA preservados.
+- Testes de geometria e regressão para a interface 640x480, sem alterar o motor OTA.
+
 ## 0.4.12-beta — 18/11/2026
 - Detecção automática da resolução de exibição do console via SDL2/LÖVE.
 - Fullscreen no tamanho detectado e escalonamento proporcional do layout-base 640×480.
