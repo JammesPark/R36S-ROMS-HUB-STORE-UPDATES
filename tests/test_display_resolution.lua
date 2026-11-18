@@ -86,6 +86,17 @@ V.resize(854,480)
 assert(not V.usingCanvas and V.canvas==nil)
 assert(calls.mode[1]==640 and calls.mode[2]==480)
 assert(V.width==640 and V.height==480)
+-- KMSDRM pode recusar ate a troca de modo 640; ponteiro ainda mapeia direto.
+flags.rejectMode=true
+sizes.w,sizes.h=854,480
+V.apply(720,720)
+V.resize(854,480)
+assert(V.width==640 and V.height==480 and not V.usingCanvas)
+local lx,ly=V.pointer(500,230)
+near(lx,500);near(ly,230)
+assert(V.pointer(700,230)==nil)
+assert(V.beginFrame()==false,'fallback nao usa framebuffer de GPU inexistente')
+flags.rejectMode=false
 -- Se SDL2 nao informa a resolucao, usar dimensoes reais da janela.
 flags.failCanvas=false
 love.window.getDesktopDimensions=function() error('SDL mode unavailable') end
