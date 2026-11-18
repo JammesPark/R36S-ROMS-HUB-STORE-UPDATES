@@ -22,3 +22,14 @@ Este repositório não hospeda ROMs, BIOS nem jogos comerciais.
 ## Projeto independente
 
 Este canal pertence apenas à **R36S ROMS STORE**. Não é a fonte de atualizações do R36SPORTSBR STORE HUB nem de outros aplicativos.
+
+
+## Publicação OTA automatizada (preparada em 18/11/2026)
+
+O workflow [`ota-release.yml`](.github/workflows/ota-release.yml) foi adicionado ao canal de atualizações. Ele valida a sintaxe LuaJIT, executa os testes, gera os ZIPs `TESTE`, `UPDATE` e `FONTE`, publica uma Release, baixa os arquivos publicados para conferir os SHA-256 e **só depois** atualiza o `update.json`.
+
+**Pré-requisito ainda pendente:** o repositório contém o canal de distribuição, mas não o código-fonte completo da ROMS STORE. Antes de rodar o workflow, adicione a fonte v0.4.4-beta completa na raiz do repositório (pastas `src/`, `port/`, `tests/`, `tools/` e arquivo `VERSION`), de preferência em um único commit, preservando os workflows. Depois crie a tag `roms-v0.4.4-beta` nesse commit. Verifique nas configurações do repositório que GitHub Actions pode criar Releases e alterar arquivos (`contents: write`).
+
+A versão 0.4.4-beta inclui um pacote OTA de **oito arquivos** para manter compatibilidade com os clientes 0.4.1-beta. Os binários auxiliares de BIOS e Loja de Temas estão no `game.love` e são instalados na primeira execução quando faltarem. O novo atualizador permite pacotes completos de 12 arquivos para as versões posteriores, com verificação de hash, backup e rollback.
+
+**Não altere manualmente `update.json` para uma versão cujos ZIPs não estejam publicados e verificados.** Até a execução bem-sucedida do workflow, o canal público continua na versão indicada no manifesto.
