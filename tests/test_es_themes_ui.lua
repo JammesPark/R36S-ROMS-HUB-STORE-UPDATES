@@ -6,6 +6,10 @@ local imageRects={}
 function mockui.rect(x,y,w,h)
  if x==380 and y==173 then imageRects[#imageRects+1]={x=x,y=y,w=w,h=h} end
 end
+local buttonHints={}
+function mockui.buttonHint(x,y,key,label,width)
+ buttonHints[#buttonHints+1]={x=x,y=y,key=key,label=label,width=width}
+end
 function mockui.panel() end
 function mockui.ellipsize(s,n) return tostring(s):sub(1,n) end
 package.preload.ui=function() return mockui end
@@ -41,7 +45,20 @@ os.execute=original
 assert(command and command:find('es_theme_manager.py',1,true)
  and command:find('install',1,true) and command:find('test-theme',1,true),'instala tema selecionado')
 m.busy=false
+assert(#buttonHints==32,'quatro botoes visuais em cada render dos quatro idiomas')
+for i=1,#buttonHints,4 do
+ assert(buttonHints[i].key=='L1' and buttonHints[i].x==176 and buttonHints[i].y==448)
+ assert(buttonHints[i+1].key=='R1' and buttonHints[i+1].x==289)
+ assert(buttonHints[i+2].key=='Y' and buttonHints[i+2].x==406)
+ assert(buttonHints[i+3].key=='B' and buttonHints[i+3].x==532)
+end
+assert(m.size()=='640x480')
+m.key('left');m.key('right')
+m.mouse(320,110)
+assert(m.size()=='640x480','direcional e clique no cabecalho nao podem mudar resolucao')
+m.key('l');assert(m.size()=='480x320','L1 diminui resolucao')
+m.key('r');assert(m.size()=='640x480','R1 aumenta resolucao')
 m.change_size(1)
 assert(m.size()=='854x480')
 assert(m.key('b')==false)
-print('PASS themes: capa ampliada, sem miniaturas e Instalar funcional')
+print('PASS themes: L1/R1 only, aligned buttons and click-safe resolution')
