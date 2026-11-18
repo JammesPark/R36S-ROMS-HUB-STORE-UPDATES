@@ -1469,7 +1469,17 @@ local function handleKey(key)
   elseif screen=='confirm' then
     if key=='left' or key=='right' or key=='x' then selectedCard=3-selectedCard
     elseif key=='a' then
-      if external.inspect(selectedGame,selectedCard) then awaitInspect=true
+      if external.pending=='download' then
+        -- O adaptador atende um pedido por vez. Enfileirar sem sobreescrita
+        -- permite adicionar ROMs enquanto outro download esta em andamento.
+        -- Se ja existe, a validacao do motor rejeita e protege o arquivo.
+        local g=selectedGame
+        local ok=g and transferQueue.enqueue('rom',{
+          game_path=g.game_path,category=g.category,name=g.name or 'ROM',
+          sha256=g.sha256 or '',card=selectedCard,overwrite=false})
+        if ok then navigate('downloads')
+        else notice=tr('download_failed');noticeTime=3 end
+      elseif external.inspect(selectedGame,selectedCard) then awaitInspect=true
       else notice=tr('download_failed');noticeTime=3 end
     elseif key=='b' then back() end
     return
