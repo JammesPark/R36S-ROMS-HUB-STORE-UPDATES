@@ -158,7 +158,7 @@ local function catalog(c,search)
  end
  local game=list[sel]
  if game then
-  poster(c,468,211,116,175,sel)
+  poster(c,game,468,211,116,175,sel)
   button('Ver detalhes ›',447,403,160,30,'game',sel,true)
  else
   tx(t(c,'no_results'),70,290,14,T.muted,320,true)
