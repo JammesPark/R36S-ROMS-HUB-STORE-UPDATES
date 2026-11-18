@@ -13,6 +13,11 @@ CACHE = STATE / 'es_theme_catalog.json'
 RESULT = STATE / 'es_theme_status.json'
 COVERS = STATE / 'es_theme_covers'
 COVER_STATUS = STATE / 'es_theme_covers_status.json'
+CONTROL = STATE / 'es_theme_control.json'
+
+
+class TransferCancelled(Exception):
+    """Theme transfer cancelled before installation; backup and target untouched."""
 ACTIVE_TASK = ''
 ACTIVE_ID = ''
 ACTIVE_THEME = ''
@@ -61,6 +66,23 @@ def get_url(url, limit=MAX_NET):
         return b''.join(chunks)
 
 
+def wait_for_transfer_control(done, expected):
+    paused = False
+    while True:
+        data = read_json(CONTROL, {})
+        command = data.get('action') if isinstance(data, dict) else None
+        if command == 'cancel':
+            raise TransferCancelled('Download do tema cancelado')
+        if command != 'pause':
+            if paused:
+                output('downloading', 'Download do tema retomado', downloaded=done, total=expected)
+            return
+        if not paused:
+            output('paused', 'Download do tema pausado', downloaded=done, total=expected)
+            paused = True
+        time.sleep(0.2)
+
+
 def download_to_file(url, dest, limit=MAX_ZIP):
     """Stream ZIP archives to disk to fit handheld devices with small RAM."""
     if not isinstance(url, str) or not url.startswith('https://'):
@@ -72,6 +94,7 @@ def download_to_file(url, dest, limit=MAX_ZIP):
         previous = 0
         output('downloading', 'Baixando pacote do tema', downloaded=0, total=expected)
         while True:
+            wait_for_transfer_control(total, expected)
             chunk = response.read(64 * 1024)
             if not chunk:
                 break
@@ -448,6 +471,9 @@ def main(argv):
                 catalog = {'themes': seed_themes()}
             output('done', 'Catálogo: ' + label, installed=installed(),
                    themes=catalog.get('themes', []), source=label, roots=roots(), errors=catalog.get('errors', []))
+        return 0
+    except TransferCancelled as exc:
+        output('cancelled', str(exc), installed=installed())
         return 0
     except Exception as exc:
         output('error', str(exc), installed=installed())
