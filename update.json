@@ -2,13 +2,13 @@
   "app": "r36s-roms-store",
   "channel": "beta",
   "status": "published",
-  "version": "0.4.1-beta",
-  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.1-beta/R36S_ROMS_STORE_v0.4.1-beta_UPDATE.zip",
-  "sha256": "f3b55baa053afde2207df5aa6dab9fd764b6fe9b6d71ec759dfd0767cc592b56",
-  "size": 7031076,
-  "notes": "R36S ROMS STORE 0.4.1-beta\n\n- Corrigida a atualização direta da v0.3.1-beta: o UPDATE mantém os sete caminhos permitidos no gerenciador legado, com SHA-256 e manifesto íntegros.\n- Componente BIOS incluído no game.love e preparado automaticamente quando necessário, evitando arquivos ausentes após atualizar.\n- Atualizador novo aceita apenas dois formatos oficiais (sete ou oito arquivos), mantendo lista de caminhos autorizados e backup/rollback.\n- Teste de compatibilidade executa o atualizador real da v0.3.1-beta com o ZIP da nova versão.\n- Quem já instalou manualmente v0.4.0-beta deve usar o instalador v0.4.1-beta; o atualizador v0.4.0-beta não reconhece o pacote legado.\n\nSoftware GPL-3.0.\n",
-  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.1-beta/R36S_ROMS_STORE_v0.4.1-beta_TESTE.zip",
-  "installer_sha256": "122af5467d71eb34e2e466d33065c96b5c536eb2f8ea5009ac0fd037819c1c6a",
-  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.1-beta/R36S_ROMS_STORE_v0.4.1-beta_FONTE.zip",
-  "source_sha256": "facd82b83248bf6cabdd97582a627fb60502a7069e79bf7e909142c4f272ae88"
+  "version": "0.4.4-beta",
+  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.4-beta/R36S_ROMS_STORE_v0.4.4-beta_UPDATE.zip",
+  "sha256": "f8b1cede31632f128b5e11e3a89cfdcdd5279d628af953975fd2f32abca1bedd",
+  "size": 8848924,
+  "notes": "R36S ROMS STORE 0.4.4-beta\n- Atualizador OTA compatível com versões 0.4.1-beta e 0.4.3-beta.\n- BIOS e Loja de Temas permanecem no menu principal.\n- Bootstrap seguro de módulos no game.love; backup e rollback mantidos.\n- O download depende de confirmação do usuário.\n",
+  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.4-beta/R36S_ROMS_STORE_v0.4.4-beta_TESTE.zip",
+  "installer_sha256": "b3393f2a817ebd48e8660a31d34aaa53261f649b574230bc3603f9da9700c4e0",
+  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.4-beta/R36S_ROMS_STORE_v0.4.4-beta_FONTE.zip",
+  "source_sha256": "020a2360deda8fea08d65f67261d4fa639ecd9a8111f1a33fb1ded90f92dff72"
 }
