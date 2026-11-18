@@ -1,5 +1,12 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.9-beta — 18/11/2026
+- Ícone de Temas redesenhado como camadas, legível em 640x480.
+- A resolução dos temas muda somente por L1/R1, não por setas ou clique no cabeçalho.
+- Legenda Temas alinhada com botões de controle L1, R1, Y e B.
+- Tela Início agora mostra o download em andamento de BIOS, ROMs, Temas ou OTA usando a mesma central de Downloads.
+- Testes de interface e progresso compartilhado para impedir regressões.
+
 ## 0.4.8-beta — 18/11/2026
 - Download de BIOS continua quando o usuario sai com B; X cancela explicitamente.
 - Corrigidos os icones da BIOS e dos Temas no menu principal.
