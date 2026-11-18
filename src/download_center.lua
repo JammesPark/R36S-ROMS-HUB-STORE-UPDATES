@@ -2,7 +2,7 @@
 -- Os trabalhos continuam nos motores originais: aqui apenas lemos estados e
 -- registramos resultados. Nao move arquivos, nao baixa em dobro e nao instala.
 local json=require('json')
-local M={active={},history={},rows={},seen={},scroll=0}
+local M={active={},history={},rows={},seen={},scroll=0,selected=1,metrics={}}
 local path
 local function read(p)
   local f=io.open(p,'rb');if not f then return nil end
@@ -13,6 +13,46 @@ local function num(n)
   local value=tonumber(n) or 0
   if value~=value or value==math.huge or value==-math.huge or value<0 then return 0 end
   return value
+end
+local function humanRate(bps)
+ bps=num(bps)
+ if bps>=1048576 then return string.format('%.2f MB/s',bps/1048576) end
+ return string.format('%.0f KB/s',bps/1024)
+end
+function M.rateText(item)
+ local bps=item and num(item.speed) or 0
+ return bps>0 and humanRate(bps) or '—'
+end
+function M.etaText(item)
+ local seconds=item and num(item.eta) or 0
+ if seconds<=0 or seconds>604800 then return '—' end
+ seconds=math.ceil(seconds)
+ if seconds>=3600 then return string.format('%dh %02dm',math.floor(seconds/3600),math.floor(seconds%3600/60)) end
+ return string.format('%02d:%02d',math.floor(seconds/60),seconds%60)
+end
+local function measure(entry,now,speedOverride)
+ if entry.phase~='download' and entry.phase~='downloading' then return end
+ local id=entry.id
+ local sample=M.metrics[id]
+ if not sample or now<sample.at or entry.done<sample.bytes then
+  sample={at=now,bytes=entry.done,speed=0}
+  M.metrics[id]=sample
+ end
+ local dt=now-sample.at
+ if dt>=0.5 then
+  local delta=entry.done-sample.bytes
+  if delta>0 then
+   local measured=delta/dt
+   sample.speed=sample.speed>0 and sample.speed*.45+measured*.55 or measured
+  elseif dt>=3 then
+   sample.speed=0
+  end
+  sample.bytes=entry.done;sample.at=now
+ end
+ entry.speed=num(speedOverride)>0 and num(speedOverride) or sample.speed
+ if entry.total>entry.done and entry.speed>0 then
+  entry.eta=(entry.total-entry.done)/entry.speed
+ end
 end
 function M.formatProgress(record)
   record=type(record)=='table' and record or {}
@@ -74,7 +114,7 @@ function M.label(lang,key)
 end
 function M.init(home)
   path=home..'/state/roms_transfer_log.json'
-  M.history={};M.seen={}
+  M.history={};M.seen={};M.metrics={};M.selected=1;M.scroll=0
   local obj=json.decode(read(path) or '')
   if type(obj)=='table' then
     for _,r in ipairs(obj) do
@@ -89,8 +129,9 @@ function M.init(home)
     end
   end
 end
-function M.poll(rom,bios,es,updater,romhistory)
+function M.poll(rom,bios,es,updater,romhistory,now)
   local active={}
+  now=tonumber(now) or os.time()
   if rom and rom.activeDownload and (rom.pending=='download' or rom.phase=='error') then
     local n=rom.activeDownload
     active[#active+1]=job('rom',n.name or 'ROM',rom.error and 'error' or 'downloading',
@@ -101,7 +142,7 @@ function M.poll(rom,bios,es,updater,romhistory)
     local state=b.state=='running' and (b.phase or 'downloading') or b.state
     local id='bios-'..tostring(b.t0 or 0)
     local entry=job('bios','Pacote BIOS',state,b.done,b.total,id)
-    if b.state=='running' then active[#active+1]=entry
+    if b.state=='running' then entry._speed=b.speed;active[#active+1]=entry
     elseif b.state=='done' or b.state=='error' or b.state=='cancelled' then
       entry.phase=b.state=='done' and 'done' or 'error'; add(entry)
     end
@@ -123,7 +164,10 @@ function M.poll(rom,bios,es,updater,romhistory)
     else active[#active+1]=entry end
   end
   local rows={}
-  for _,entry in ipairs(active) do rows[#rows+1]=entry end
+  for _,entry in ipairs(active) do
+    measure(entry,now,entry._speed)
+    rows[#rows+1]=entry
+  end
   for i=#M.history,1,-1 do rows[#rows+1]=M.history[i] end
   for i=#(romhistory or {}),1,-1 do
     local r=romhistory[i]
@@ -131,6 +175,7 @@ function M.poll(rom,bios,es,updater,romhistory)
       tostring(r.card or ''):upper())
   end
   M.active=active;M.rows=rows
+  M.selected=math.max(1,math.min(M.selected,math.max(1,#rows)))
   M.scroll=math.max(0,math.min(M.scroll,math.max(0,#rows-6)))
 end
 -- Uma mesma fonte alimenta Downloads e o painel da tela Início.
@@ -143,6 +188,12 @@ function M.current()
 end
 function M.count() return #M.rows end
 function M.maxScroll() return math.max(0,#M.rows-6) end
-function M.move(delta) M.scroll=math.max(0,math.min(M.maxScroll(),M.scroll+delta)) end
+function M.move(delta)
+ M.selected=math.max(1,math.min(math.max(1,#M.rows),M.selected+delta))
+ if M.selected<=M.scroll then M.scroll=M.selected-1 end
+ if M.selected>M.scroll+6 then M.scroll=M.selected-6 end
+ M.scroll=math.max(0,math.min(M.maxScroll(),M.scroll))
+end
+function M.selectedItem() return M.rows[M.selected] end
 function M.entries() return M.rows end
 return M
