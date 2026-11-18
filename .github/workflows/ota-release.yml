@@ -1,0 +1,83 @@
+name: R36S ROMS STORE - OTA Release
+on:
+  push:
+    tags:
+      - 'roms-v*'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: roms-store-ota-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update -q && sudo apt-get install -y luajit lua5.3 zip unzip
+      - name: Validate, test and build TESTE, UPDATE, FONTE
+        run: bash tools/build.sh
+      - name: Verify tag, version and no downgrade
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          VER=$(tr -d '\r\n' < VERSION)
+          [[ "${GITHUB_REF_NAME}" = "roms-v${VER}" ]] || [[ "${GITHUB_EVENT_NAME}" = workflow_dispatch ]] || exit 1
+          python3 - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          ver=Path('VERSION').read_text().strip()
+          data=json.loads(Path('build/update.json').read_text())
+          assert data['version']==ver and data['app']=='r36s-roms-store'
+          raw=subprocess.check_output(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/contents/update.json',
+            '-H','Accept: application/vnd.github.raw+json'],text=True)
+          old=json.loads(raw)['version']
+          key=lambda v:tuple(map(int,v.split('-')[0].split('.')))
+          assert key(ver)>key(old),f'Cannot publish downgrade: {ver} vs {old}'
+          PY
+      - name: Publish release assets (never publish manifest yet)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          VER=$(tr -d '\r\n' < VERSION)
+          TAG="roms-v${VER}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing overwrite' >&2
+            exit 1
+          fi
+          gh release create "$TAG" \
+            "build/R36S_ROMS_STORE_v${VER}_TESTE.zip" \
+            "build/R36S_ROMS_STORE_v${VER}_UPDATE.zip" \
+            "build/R36S_ROMS_STORE_v${VER}_FONTE.zip" \
+            --repo "$GITHUB_REPOSITORY" --title "R36S ROMS STORE ${VER}" \
+            --notes "Update verified by SHA-256; user must confirm installation." \
+            --prerelease --latest=false
+      - name: Download public release and verify checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          VER=$(tr -d '\r\n' < VERSION)
+          mkdir -p verify
+          gh release download "roms-v${VER}" --repo "$GITHUB_REPOSITORY" --dir verify
+          python3 - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          info=json.loads(Path('build/update.json').read_text())
+          for label,expected in [('UPDATE',info['sha256']),('TESTE',info['installer_sha256']),('FONTE',info['source_sha256'])]:
+            p=Path('verify')/f'R36S_ROMS_STORE_v{info["version"]}_{label}.zip'
+            assert hashlib.sha256(p.read_bytes()).hexdigest()==expected,label
+          PY
+      - name: Publish manifest only after release verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/update.json" --jq .sha)
+          CONTENT=$(base64 -w0 build/update.json)
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/update.json" \
+            -f message="release: publish OTA $(cat VERSION)" \
+            -f content="$CONTENT" -f sha="$SHA" -f branch=main >/dev/null
