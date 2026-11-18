@@ -25,7 +25,7 @@ jobs:
           python3 - <<'PY'
           import hashlib, pathlib, shutil, stat, zipfile
           name='R36S_ROMS_STORE_v0.4.5-beta_FONTE.zip'
-          expected='3aeca08ba0e8745273c5041135b20cf4d1773c4b65146355cf998776d0faef01'
+          expected='5199e6b630d21741fde1575b82c6715c0cac54476271db66a8f7be4e9533e734'
           path=pathlib.Path(name)
           assert path.is_file(), 'Faça upload do ZIP FONTE na raiz do repositorio'
           h=hashlib.sha256(path.read_bytes()).hexdigest()
