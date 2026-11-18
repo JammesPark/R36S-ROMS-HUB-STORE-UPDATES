@@ -1,5 +1,14 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.10-beta — 18/11/2026
+- Etapa 1A: velocidade de download e ETA medidos com amostras reais na Central.
+- Etapa 1B: fila FIFO persistente para ROMs, BIOS e temas; seleção e ordem de execução seguras.
+- Etapa 1C: pausar, retomar e cancelar transferências em andamento; cancelar itens pendentes.
+- BIOS mantida em segundo plano ao mudar de menu e identificada na Central e no Início.
+- Downloads de ROMs com falha ou cancelados registrados em histórico sem manter entradas ativas travadas.
+- Testes automáticos Lua/CI e Python offline para fila, controles, limites e preservação de dados.
+- OTA incremental e completo inalterados; estado do usuário protegido em state/.
+
 ## 0.4.9-beta — 18/11/2026
 - Ícone de Temas redesenhado como camadas, legível em 640x480.
 - A resolução dos temas muda somente por L1/R1, não por setas ou clique no cabeçalho.
