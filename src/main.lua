@@ -26,6 +26,7 @@ local aboutMaxScroll=0
 local qrModal=nil -- 'telegram' ou 'livepix'
 local qrExpanded=false
 local storeUpdateModal=false
+local updateConfirm=nil -- {kind, backup}: confirmação de restauração/exclusão
 local exitChoice=2 -- 1 Sim, 2 Não
 local pendingDelete=nil
 local duplicateModal=false
@@ -36,7 +37,7 @@ local autoSearchNext=false
 local favorites={}
 local downloads={}
 local focus='sidebar'; local menuIndex=1;local categoryIndex=1;local gameIndex=1
-local favIndex=1;local installIndex=1;local historyIndex=1;local settingsIndex=1;local downloadScroll=0
+local favIndex=1;local installIndex=1;local historyIndex=1;local updateBackupIndex=1;local updateHistoryScroll=0;local updateLocalIndex=1;local settingsIndex=1;local downloadScroll=0
 local languageIndex=1;local themeIndex=1;local fontSizeIndex=2;local searchIndex=1;local query='';local searchResultIndex=1
 local selectedGame=nil
 local lastStatus='';local lastManifest='';local coverImages={};local coverSeen={}
@@ -751,8 +752,77 @@ local function storeUpdatesPage()
     or storeUpdater.tr(lang,'check')
   R(202,333,397,40,theme.accent,8)
   txt(action,208,345,13,theme.bg,384,true)
-  txt(storeUpdater.tr(lang,'no_auto'),183,395,10,theme.muted,430,true)
+  txt(storeUpdater.tr(lang,'no_auto'),183,386,10,theme.muted,430,true)
+  txt(storeUpdater.tr(lang,'updates_hint'),183,403,10,theme.accent,430,true)
   footer()
+end
+local function storeUpdateBackupsPage()
+  local lang=settings.language
+  local list=storeUpdater.backups()
+  header(tr('manage'),storeUpdater.tr(lang,'backups'))
+  panel(180,108,440,303)
+  if #list==0 then
+    txt(storeUpdater.tr(lang,'no_backups'),194,232,13,theme.muted,410,true)
+  else
+    local first=math.max(1,math.min(updateBackupIndex-3,math.max(1,#list-5)))
+    for slot=1,math.min(6,#list-first+1) do
+      local idx=first+slot-1
+      local v=list[idx]
+      local y=124+(slot-1)*43
+      panel(191,y,415,40,idx==updateBackupIndex)
+      txt(ui.ellipsize(tostring(v.from or '?')..' → '..tostring(v.to or '?'),35),203,y+6,12,idx==updateBackupIndex and theme.accent or theme.text,365)
+      txt(ui.ellipsize(tostring(v.id or ''),48),203,y+24,9,theme.muted,374)
+    end
+  end
+  txt(storeUpdater.tr(lang,'backups_hint'),190,400,10,theme.accent,421,true)
+  footer()
+end
+local function storeUpdateHistoryPage()
+  local lang=settings.language
+  local list=storeUpdater.history()
+  header(tr('manage'),storeUpdater.tr(lang,'history_title'))
+  panel(180,108,440,303)
+  if #list==0 then txt(storeUpdater.tr(lang,'no_history'),193,236,13,theme.muted,410,true)
+  else
+    local count=math.min(6,math.max(0,#list-updateHistoryScroll))
+    for row=1,count do
+      local entry=list[#list-updateHistoryScroll-row+1]
+      local y=121+(row-1)*43
+      panel(191,y,417,40)
+      txt(ui.ellipsize(tostring(entry.event or '')..'  '..tostring(entry.target or entry.version or ''),44),202,y+6,11,theme.text,390)
+      txt(ui.ellipsize(tostring(entry.backup or entry.package or entry.source or ''),54),202,y+24,9,theme.muted,389)
+    end
+  end
+  txt('▲▼  '..tostring(math.min(#list,updateHistoryScroll+1))..' / '..tostring(#list)..'      B  '..tr('back'),190,402,10,theme.accent,423,true)
+  footer()
+end
+local function storeUpdateLocalPage()
+  local lang=settings.language
+  local list=storeUpdater.localPackages()
+  header(tr('manage'),storeUpdater.tr(lang,'local_title'))
+  panel(180,108,440,303)
+  if #list==0 then
+    ui.paragraph(storeUpdater.tr(lang,'no_local'),199,190,401,12,theme.muted,3)
+  else
+    for i=1,math.min(6,#list) do
+      local v=list[i]
+      local y=127+(i-1)*42
+      panel(191,y,417,38,i==updateLocalIndex)
+      txt(ui.ellipsize(tostring(v.name or ''),50),204,y+11,11,i==updateLocalIndex and theme.accent or theme.text,385)
+    end
+  end
+  txt(storeUpdater.tr(lang,'local_hint'),190,399,10,theme.accent,423,true)
+  footer()
+end
+local function storeUpdateConfirmPage()
+  if not updateConfirm then return end
+  R(0,0,640,480,{0,0,0},0,nil,.8)
+  panel(143,142,356,192,true)
+  local key=updateConfirm.kind=='restore' and 'restore_question' or 'delete_question'
+  txt(storeUpdater.tr(settings.language,key),158,177,16,theme.text,326,true)
+  txt(ui.ellipsize(updateConfirm.backup.id,42),165,223,11,theme.accent,306,true)
+  ui.buttonHint(162,288,'A',tr('confirm'),145)
+  ui.buttonHint(354,288,'B',tr('cancel'),130)
 end
 local function storeUpdateOfferPage()
   -- Popup centralizado com versão atual, nova versão e resumo de novidades.
@@ -1099,6 +1169,9 @@ function love.draw()
   elseif screen=='bios' then biosPage()
   elseif screen=='es_themes' then esThemesPage()
   elseif screen=='updates' then storeUpdatesPage()
+  elseif screen=='update_backups' then storeUpdateBackupsPage()
+  elseif screen=='update_history' then storeUpdateHistoryPage()
+  elseif screen=='update_local' then storeUpdateLocalPage()
   elseif screen=='about' then aboutPage()
   elseif screen=='help' then helpPage()
   elseif screen=='offline' then offlinePage()
@@ -1113,6 +1186,7 @@ function love.draw()
   if duplicateModal then overwriteDialog() end
   if pendingDelete then deleteDialog() end
   if storeUpdateModal then storeUpdateOfferPage() end
+  if updateConfirm then storeUpdateConfirmPage() end
 end
 local function changeTheme()
   local o=theme.options[themeIndex];if not o then return end
@@ -1155,6 +1229,19 @@ local function refreshCatalog()
 end
 -- Modal separado para nao ultrapassar o limite de 60 upvalues do LuaJIT.
 local function handleGlobalModal(key)
+  if updateConfirm then
+    if key=='b' then updateConfirm=nil
+    elseif key=='a' then
+      local action=updateConfirm
+      updateConfirm=nil
+      if action.kind=='delete' then
+        storeUpdater.deleteBackup(action.backup.id)
+      elseif action.kind=='restore' then
+        if storeUpdater.requestRestore(action.backup.id) then love.event.quit() end
+      end
+    end
+    return
+  end
   if storeUpdateModal then
     if key=='a' then storeUpdateModal=false;navigate('updates')
     elseif key=='b' then storeUpdateModal=false end
@@ -1418,12 +1505,40 @@ local function handleKey(key)
     if not esUI.key(key) then back() end
     return
   elseif screen=='updates' then
-    if key=='a' and not storeUpdater.pending then
+    if key=='x' then
+      storeUpdater.refreshBackups();updateBackupIndex=1;navigate('update_backups')
+    elseif key=='y' then
+      updateHistoryScroll=0;navigate('update_history')
+    elseif key=='start' then
+      storeUpdater.refreshLocal();updateLocalIndex=1;navigate('update_local')
+    elseif key=='a' and not storeUpdater.pending then
       local phase=storeUpdater.status.phase
       if phase=='available' then storeUpdater.run('download')
       elseif phase=='ready' then
         if storeUpdater.install() then love.event.quit() end
       else storeUpdater.run('check') end
+    elseif key=='b' then back() end
+    return
+  elseif screen=='update_backups' then
+    local backups=storeUpdater.backups()
+    if key=='up' then updateBackupIndex=math.max(1,updateBackupIndex-1)
+    elseif key=='down' then updateBackupIndex=math.min(#backups,updateBackupIndex+1)
+    elseif (key=='a' or key=='x') and backups[updateBackupIndex] then
+      updateConfirm={kind=key=='a' and 'restore' or 'delete',backup=backups[updateBackupIndex]}
+    elseif key=='b' then back() end
+    return
+  elseif screen=='update_history' then
+    local count=#storeUpdater.history()
+    if key=='up' then updateHistoryScroll=math.min(math.max(0,count-6),updateHistoryScroll+1)
+    elseif key=='down' then updateHistoryScroll=math.max(0,updateHistoryScroll-1)
+    elseif key=='b' then back() end
+    return
+  elseif screen=='update_local' then
+    local packages=storeUpdater.localPackages()
+    if key=='up' then updateLocalIndex=math.max(1,updateLocalIndex-1)
+    elseif key=='down' then updateLocalIndex=math.min(#packages,updateLocalIndex+1)
+    elseif key=='a' and packages[updateLocalIndex] then
+      if storeUpdater.downloadLocal(packages[updateLocalIndex].name) then navigate('updates') end
     elseif key=='b' then back() end
     return
   elseif screen=='network' or screen=='offline' then

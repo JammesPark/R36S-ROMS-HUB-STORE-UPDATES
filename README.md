@@ -18,14 +18,22 @@ Em **Configurações → Temas e cores** permanece apenas a escolha das cores da
 
 Gerenciador de BIOS com verificação por nome, tamanho e hash, análise de pacotes, backup, restauração e importação local. As operações que alteram arquivos precisam de confirmação; arquivos só são instalados após verificação de hash. O download requer uma fonte HTTPS configurada em `bios_url.txt` e de distribuição autorizada. **Não são incluídas BIOS comerciais.**
 
-## Instalação e atualização OTA
+## Instalação e atualização
 
-As novas versões são distribuídas pelo canal oficial [R36S ROMS STORE UPDATES](https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases). O aplicativo consulta o `update.json`, compara as versões e solicita confirmação para baixar e instalar a atualização. Backups e rollback permanecem disponíveis; o pacote não substitui a pasta `state/`.
+A versão 0.4.4-beta já possui um atualizador OTA que aceita pacotes oficiais de 12 arquivos. O pacote da 0.4.5-beta deve ser publicado no repositório `JammesPark/R36S-ROMS-STORE-UPDATES`, passando por build, testes, SHA-256 dos ZIPs e atualização do `update.json` **apenas após confirmar a Release pública**. Enquanto isso não acontecer, o usuário deve continuar utilizando a versão publicada anteriormente.
 
-**Publicação sem upload manual de ZIP:** os códigos-fonte da ROMS STORE ficam diretamente na branch `main`. Para atualizar, altere os módulos necessários e aumente `VERSION` no mesmo commit. O workflow `.github/workflows/auto-release-on-version.yml` testa com LuaJIT, gera os pacotes TESTE, UPDATE e FONTE, cria a Release, baixa novamente os arquivos para verificar SHA-256 e só então atualiza o manifesto público. Se alguma etapa falhar, a versão anterior permanece publicada.
+**Arquivo manual:** `R36S_ROMS_STORE_v0.4.5-beta_TESTE.zip`, extraído em `/roms/ports/` depois de fazer backup do aplicativo. A atualização segura não inclui a pasta `state/` e preserva as configurações, favoritos e histórico.
 
-Para gerar pacotes localmente com LuaJIT, Lua 5.3, Python 3 e zip instalados, execute `bash tools/build.sh`. Os testes automatizados não substituem a validação no console físico.
+**Código-fonte e CI:** `R36S_ROMS_STORE_v0.4.5-beta_FONTE.zip`. Em Debian/Ubuntu com LuaJIT, Lua 5.3, zip e Python 3 instalados, execute `bash tools/build.sh`. A execução do GitHub Actions realiza a validação LuaJIT antes de publicar. Os testes locais foram feitos com simulações e **ainda não substituem o teste de download e renderização no console físico**.
 
 ## Créditos e licença
 
 Software GPL-3.0. Motor de BIOS adaptado do R36SPORTSBR STORE HUB; preservar os créditos à base original R36S PORT HUB, por Lag do Lira, e os avisos dos demais componentes em `LICENSE` e `THIRD_PARTY_NOTICES.txt`. ROMs, jogos, BIOS e temas de terceiros podem possuir licenças próprias.
+
+
+## Atualizações avançadas (a partir de 0.4.6-beta)
+
+A loja consulta automaticamente a fonte oficial, mas só instala depois de autorização.
+A página **Configurações → Atualizações** oferece: **X** para backups, **Y** para histórico e **START** para atualizações locais. Em backups, **A** solicita restauração e **X** solicita exclusão; ambas exigem confirmação. Pacotes locais devem ser copiados manualmente para `r36s-roms-store/state/updates/inbox/`. A instalação ocorre após encerrar o LÖVE.
+
+A atualização incremental é oferecida apenas para a versão-base exata indicada no feed. Quem está em versão diferente recebe o pacote completo. O SHA-256, manifesto, lista de caminhos autorizados, backup, rollback e confirmação no próximo boot permanecem obrigatórios. Retém até três backups confirmados e até 100 eventos do histórico. Para detalhes, consulte `docs/OTA_AVANCADO.md`.
