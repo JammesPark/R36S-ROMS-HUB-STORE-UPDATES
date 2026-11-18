@@ -1,4 +1,30 @@
-# R36S ROMS STORE — 0.4.5-beta
+# R36S ROMS STORE — 0.4.10-beta
+
+## Etapa 1 — Central de Downloads (0.4.10-beta)
+
+A Central de Downloads usa **A** para pausar ou retomar a tarefa selecionada,
+**X** para cancelar, **Y** para abrir o histórico e **B** para voltar.
+As setas movimentam a seleção entre transferências ativas, fila e histórico.
+
+- **Velocidade/ETA:** calculados a partir dos bytes efetivamente recebidos e
+  do intervalo de medição; quando o servidor não informa o tamanho ou não há
+  amostras suficientes, o tempo restante aparece como indisponível.
+- **Fila:** ROMs, pacote BIOS e temas EmulationStation usam uma fila FIFO
+  (até 20 tarefas pendentes). ROMs podem ser adicionadas durante outro download
+  sem autorizar sobrescrita automática. A fila pendente fica no arquivo
+  `state/roms_download_queue.json`, fora dos pacotes OTA.
+- **Pausa/retomada:** BIOS suspende e continua o processo de rede; ROMs e temas
+  pausam cooperativamente a transferência em andamento, mantendo os arquivos
+  parciais sob controle do motor original.
+- **Segurança:** cancelamento de download não remove uma ROM instalada.
+  Verificação SHA-256 e validação de destino permanecem no motor de cada tipo;
+  tema só é instalado após recebimento e conferência do pacote. O OTA usa o
+  atualizador isolado existente, sem entrar na fila de conteúdo.
+- **Limites da versão beta:** a retomada de uma tarefa ativa é destinada ao
+  aplicativo ainda aberto; após reiniciar o console, apenas tarefas pendentes
+  são recuperadas. Transferências interrompidas e pausas prolongadas podem
+  exigir um novo download se o servidor fechar a conexão. Os controles não
+  interrompem etapas críticas de verificação ou instalação.
 
 Versão Lua/LÖVE 11.5 da R36S ROMS STORE, com navegação para 640×480, catálogo de ROMs, BIOS, temas EmulationStation, favoritos, instalação no SD1/SD2 e atualização OTA.
 
