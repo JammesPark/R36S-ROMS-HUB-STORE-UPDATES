@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: github.ref != 'refs/tags/roms-v0.4.4-beta'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
