@@ -271,14 +271,6 @@ local function cover(game,x,y,w,h,index)
     ui.imageContain(img,x+2,y+2,w-4,h-4)
   end
 end
-local function coverStretch(game,x,y,w,h,index)
-  local img=cachedImage(game)
-  if img then
-    ui.imageStretch(img,x,y,w,h)
-  else
-    cover(game,x,y,w,h,index)
-  end
-end
 local function platformTitle(code)
   code=tostring(code or '')
   if code=='ALL' then return tr('all') end
@@ -375,7 +367,7 @@ local function totalRoms()
 end
 
 local function homePage()
-  header(tr('welcome'),tr('title_home'))
+  header(tr('welcome'),tr('home'))
   -- Painel superior: o download real substitui o texto promocional anterior.
   -- Usa o mesmo estado do backend que alimenta a tela Downloads.
   panel(179,103,441,87,focus=='content' and homeFocus=='explore')
