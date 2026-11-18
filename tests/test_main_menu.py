@@ -16,6 +16,23 @@ assert "elseif screen=='es_themes' then esThemesPage()" in s
 assert "bios='chip',es_themes='layers'" in ui
 assert "elseif shape=='chip'" in ui and "elseif shape=='layers'" in ui
 assert "local current=transferCenter.current()" in s, "Inicio must track BIOS/ROM/themes OTA"
+# HTML aprovado (retrato 2:3, Em destaque e contagens na parte inferior).
+home_geometry=(root/'src/home_layout.lua').read_text(encoding='utf8')
+home=s.split("local function homePage()",1)[1].split("local function ",1)[0]
+assert "local homeLayout=require('home_layout')" in s
+assert "txt(tr('featured'),180,homeLayout.titleY" in home
+assert "for slot=1,3 do" in home
+assert "cover(game,px,homeLayout.coverY,homeLayout.coverW,homeLayout.coverH,index)" in home
+assert home.index("txt(tr('featured')") < home.index("local stats=")
+assert "homeLayout.statsY" in home
+assert "homeLayout.featureAt(x,y,#external.games,homeSlideIndex)" in s
+assert "homeLayout.statAt(x,y)" in s
+assert "cover(selected,443,137,160,240,chosen)" in s
+assert "cover(g,201,130,150,225,gameIndex)" in s
+assert "cover(game,cx,y+4,coverW,coverH,idx)" in s
+assert "H.tileX={180,329,478}" in home_geometry
+assert "H.statsY=386" in home_geometry
+assert "featured='Em destaque'" in i18n
 # Resolução física: todas as telas continuam usando coordenadas virtuais de 640x480.
 conf=(root/'src/conf.lua').read_text(encoding='utf8')
 display=(root/'src/display_resolution.lua').read_text(encoding='utf8')
