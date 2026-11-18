@@ -375,23 +375,24 @@ local function homePage()
   -- Usa o mesmo estado do backend que alimenta a tela Downloads.
   panel(179,103,441,87,focus=='content' and homeFocus=='explore')
   ui.kicker(tr('current_download'),194,111)
-  local current=external.activeDownload
-  local inProgress=current and external.pending=='download' and
-    external.phase~='error' and external.phase~='done'
-  if inProgress then
-    local name=ui.ellipsize(current.name or 'ROM',34)
-    txt(name,194,132,12,theme.text,263)
-    txt('SD'..tostring(current.card or 1),459,132,10,theme.accent,28,true)
-    local expected=math.max(0,tonumber(external.expected) or 0)
-    local downloaded=math.max(0,tonumber(external.downloaded) or 0)
+  local current=transferCenter.current()
+  if current then
+    local kind=transferCenter.label(settings.language,current.kind)
+    txt(ui.ellipsize(current.name or kind,34),194,132,12,theme.text,263)
+    local tag=current.kind=='rom' and tostring(current.detail or 'SD1') or kind
+    txt(ui.ellipsize(tag,6),459,132,10,theme.accent,29,true)
+    local expected=math.max(0,tonumber(current.total) or 0)
+    local downloaded=math.max(0,tonumber(current.done) or 0)
     local percent=expected>0 and math.max(0,math.min(1,downloaded/expected)) or nil
     R(194,155,258,9,theme.border,4)
     if percent and percent>0 then R(194,155,258*percent,9,theme.green,4) end
     txt(percent and string.format('%d%%',math.floor(percent*100+.5)) or '—',458,152,11,theme.text,29,true)
     if expected>0 then
       txt(string.format('%.1f / %.1f MB',downloaded/1048576,expected/1048576),194,173,9,theme.muted,285)
+    elseif downloaded>0 then
+      txt(string.format('%.1f MB',downloaded/1048576),194,173,9,theme.muted,285)
     else
-      txt(tr('progress'),194,173,9,theme.muted,274)
+      txt(transferCenter.label(settings.language,current.phase),194,173,9,theme.muted,274)
     end
   else
     txt(tr('no_current_download'),194,138,12,theme.muted,287)
@@ -1673,7 +1674,9 @@ function love.mousepressed(x,y,button)
   elseif screen=='bios' then
     if not biosUI.mouse(x,y) then handleKey('b') end
   elseif screen=='es_themes' then
-    esUI.mouse(x,y)
+    -- A legenda B da barra inferior tambem funciona com clique, sem afetar o restante.
+    if y>=440 and x>=525 and not esUI.hasModal() then handleKey('b')
+    else esUI.mouse(x,y) end
   elseif screen=='network' then
     if x>=202 and x<=598 and y>=320 and y<=365 then refreshCatalog() end
   elseif screen=='offline' then
