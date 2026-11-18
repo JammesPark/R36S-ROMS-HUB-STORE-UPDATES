@@ -13,7 +13,8 @@ assert 114+31*(len(pages)-1)+29 <= 424
 assert "local suboptions={'languages','layout_choice','themes','font_size','storage','network','updates','help'}" in s
 studio=(root/'src/studio_ui.lua').read_text(encoding='utf8')
 theme=(root/'src/theme.lua').read_text(encoding='utf8')
-assert "studioUI.draw(studioContext(),drawClassicVirtual)" in s
+assert "pcall(studioUI.draw,studioContext(),drawClassicVirtual)" in s
+assert "theme.setLayout('classic');saveSettings()" in s, "Studio errors need a safe Classic fallback"
 assert "local studioUI=require('studio_ui')" in s
 assert "theme.setLayout(settings.layout)" in s
 assert "encodeString(settings.layout)" in s
