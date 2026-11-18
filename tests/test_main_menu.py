@@ -16,6 +16,19 @@ assert "elseif screen=='es_themes' then esThemesPage()" in s
 assert "bios='chip',es_themes='layers'" in ui
 assert "elseif shape=='chip'" in ui and "elseif shape=='layers'" in ui
 assert "local current=transferCenter.current()" in s, "Inicio must track BIOS/ROM/themes OTA"
+# Resolução física: todas as telas continuam usando coordenadas virtuais de 640x480.
+conf=(root/'src/conf.lua').read_text(encoding='utf8')
+display=(root/'src/display_resolution.lua').read_text(encoding='utf8')
+assert 't.window.width = 640' in conf and 't.window.height = 480' in conf
+assert "local display=require('display_resolution')" in s
+assert "display.init()" in s and "function love.resize(w,h)" in s
+assert "local function drawVirtual()" in s
+assert "display.beginFrame()" in s and "display.endFrame(inCanvas)" in s
+assert "x,y=display.pointer(x,y)" in s, "Mouse must map to virtual 640x480"
+assert "getDesktopDimensions" in display and "fallback 640x480" in display
+assert "fullscreen=true" in display and "getDimensions" in display
+assert "src/display_resolution.lua" not in str(root/'src/store_update.lua'), "OTA unaffected"
+
 home=s.split("local function homePage()",1)[1].split("local function ",1)[0]
 assert "transferCenter.rateText(current)" in home, "Home must show the same live speed as Downloads"
 assert "transferCenter.etaText(current)" in home, "Home must show the same ETA as Downloads"
