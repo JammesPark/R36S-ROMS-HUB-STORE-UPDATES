@@ -27,10 +27,11 @@ local bios={queueDownload=function(name,size)
  assert(name=='bios.zip' and size==500)
  current={op='download',state='running'};return true
 end,job=function() return current end}
-local theme={busy=false,queueInstall=function(id,res)
+local theme={busy=false}
+function theme.queueInstall(id,res)
  assert(id=='test-theme' and res=='640x480')
  theme.busy=true;return true
-end}
+end
 Q.tick(rom,bios,theme)
 assert(rom_started==1 and #Q.items==2 and Q.current.kind=='rom')
 Q.tick(rom,bios,theme)
