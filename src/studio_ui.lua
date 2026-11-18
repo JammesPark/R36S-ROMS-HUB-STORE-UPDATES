@@ -131,15 +131,19 @@ local function catalog(c,search)
  button('⌕ Buscar',538,138,87,29,'goto','search',false)
  if not search then
   local cats=c.categories or {}
-  local x=15
-  for i=1,math.min(6,#cats) do
+  local index=math.max(1,math.min(#cats,tonumber(c.categoryIndex) or 1))
+  local first=math.max(1,math.min(index-2,math.max(1,#cats-5)))
+  for slot=1,math.min(6,#cats) do
+   local i=first+slot-1
    local cat=cats[i]
-   local key=tostring(cat.category or 'ALL')
-   local name=short((c.platformTitle and c.platformTitle(key)) or key,13)
-   local w=math.min(115,math.max(58,16+#name*6))
-   if x+w<=626 then
-    button(name,x,173,w,25,'category',i,key==c.category)
-    x=x+w+7
+   if cat then
+    local key=tostring(cat.category or 'ALL')
+    local name=short((c.platformTitle and c.platformTitle(key)) or key,12)
+    local x=15+(slot-1)*101
+    button(name,x,173,96,25,'category',i,key==c.category)
+    if c.focus=='sidebar' and index==i then
+     U.stroke(x,173,96,25,T.accent,7,2)
+    end
    end
   end
  end
@@ -190,9 +194,10 @@ local function downloads(c)
  tx('Transferências e fila de downloads',15,143,12,T.text,460)
  local list=c.transfers or {}
  local selected=c.transferSelected or 1
- for i=1,math.min(5,#list) do
+ local first=math.max(1,math.min(selected-2,math.max(1,#list-4)))
+ for i=first,math.min(#list,first+4) do
   local item=list[i]
-  local y=172+(i-1)*47
+  local y=172+(i-first)*47
   panel(15,y,610,43,selected==i)
   tx(short(item.name or item.kind or 'ROM',46),25,y+4,11,T.text,380)
   tx(short(item.phase or '',17),480,y+4,10,T.accent,125,true)
@@ -214,8 +219,10 @@ local function listPage(c,kind)
   tx(kind=='installed' and t(c,'no_installed') or t(c,'no_favorites'),28,245,14,T.muted,584,true)
   return
  end
- for i=1,math.min(5,#list) do
-  local item=list[i];local y=162+(i-1)*53
+ local idx=kind=='installed' and (c.installIndex or 1) or (c.favoriteIndex or 1)
+ local first=math.max(1,math.min(idx-2,math.max(1,#list-4)))
+ for i=first,math.min(#list,first+4) do
+  local item=list[i];local y=162+(i-first)*53
   local active=(kind=='installed' and c.installIndex==i) or (kind=='favorites' and c.favoriteIndex==i)
   panel(15,y,610,49,active)
   if kind=='favorites' then poster(c,item,23,y+3,29,43,i) end
