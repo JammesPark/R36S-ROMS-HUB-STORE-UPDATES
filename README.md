@@ -1,5 +1,18 @@
 # R36S ROMS STORE — Atualizações públicas
 
+## Ativar OTA v0.4.4-beta em um unico upload (GitHub Actions)
+
+O repositório já possui o workflow [`bootstrap-0.4.4.yml`](.github/workflows/bootstrap-0.4.4.yml). **Para executar a importação inicial**, faça o upload do arquivo **`R36S_ROMS_STORE_v0.4.4-beta_FONTE.zip`** na raiz da branch `main`, sem renomeá-lo. Este arquivo deve ter SHA-256:
+
+`9ce943842c72d30b9f63289ca3c120aa78774756c196fc2af85e706c43259098`
+
+O push de upload dispara o fluxo. Ele valida o SHA-256 do ZIP, inspeciona todos os caminhos e os extrai, **sem substituir os workflows existentes**, instala LuaJIT, testa e recria os três pacotes; em caso de sucesso, grava o código-fonte na branch `main`, cria a tag `roms-v0.4.4-beta`, publica a Release e compara os hashes dos arquivos obtidos da própria Release. Só então publica o `update.json`. O ZIP de upload é removido do último commit ao extrair a fonte.
+
+**Importante:** o upload ainda precisa ser realizado por alguém com acesso de escrita; enquanto isso não ocorrer ou se algum teste falhar, o manifesto permanece na 0.4.1-beta. A publicação depende da permissão de escrita do GitHub Actions em **Settings → Actions → General → Workflow permissions**.
+
+As versões seguintes podem usar o workflow normal `ota-release.yml`, após atualizar a fonte no `main`, alterar `VERSION` e criar a respectiva tag `roms-vX.Y.Z-beta`.
+
+
 Repositório público **exclusivo** das atualizações da **R36S ROMS STORE** (console R36S).
 O código-fonte de cada versão distribuída acompanha os pacotes de Release.
 
