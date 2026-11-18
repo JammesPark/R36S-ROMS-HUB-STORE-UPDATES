@@ -1,4 +1,26 @@
-# R36S ROMS STORE — 0.4.12-beta
+# R36S ROMS STORE — 0.4.13-beta
+
+## Layout aprovado do protótipo HTML (0.4.13-beta)
+
+A tela **Início** do LÖVE agora utiliza o conceito aprovado no HTML:
+**"Em destaque"** aparece logo abaixo do painel de transferência, com **três
+capas em retrato 2:3** lado a lado. Abaixo delas ficam as contagens de
+**Catálogo**, **Instalados** e **Favoritos**, calculadas dos dados reais.
+As capas usam os arquivos já existentes em `state/covers/`; nenhuma imagem
+ou contagem de demonstração do HTML entra na aplicação.
+
+- As três capas permitem navegação por direcional e por clique/toque.
+  A seleção usa o índice real do catálogo e abre a ROM correspondente.
+- Em Catálogo e Resultados de busca, a capa selecionada é exibida em retrato,
+  preservando a proporção e com botão de detalhes logo abaixo.
+- Em Detalhes e Favoritos, as capas também respeitam a proporção vertical,
+  sem esticar as imagens reais.
+- Mantidos BIOS, Temas, Downloads, SD1/SD2, idiomas, detectores de resolução,
+  dados pessoais em `state/` e mecanismo OTA existente.
+
+A geometria 640x480 é testada por `tests/test_home_layout.lua` e a
+navegação/integração por `tests/test_main_menu.py`.
+Validação visual e de controles no console físico segue necessária.
 
 ## Etapa 2 — Tela física e adaptação automática (0.4.12-beta)
 
