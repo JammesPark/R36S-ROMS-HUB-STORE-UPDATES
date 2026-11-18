@@ -1,4 +1,32 @@
-# R36S ROMS STORE — 0.4.10-beta
+# R36S ROMS STORE — 0.4.12-beta
+
+## Etapa 2 — Tela física e adaptação automática (0.4.12-beta)
+
+O aplicativo consulta a resolução do display ativo informada pelo **SDL2/LÖVE**.
+No console PortMaster, tenta usar o modo de tela cheia do display detectado.
+A interface existente continua desenhada em **640×480** internamente e é
+redimensionada proporcionalmente, centralizada e sem distorção. Em telas 16:9,
+quadradas ou outras proporções, o espaço restante vira margem preta; nenhum
+menu é cortado para preencher a tela.
+
+- Resoluções simuladas nos testes: 320×240, 640×480, 720×720, 854×480,
+  960×544, 1024×768 e 1280×720.
+- Cliques e toques que chegam como eventos de mouse do LÖVE são mapeados
+  para as coordenadas virtuais 640×480; clicar fora da área útil não ativa
+  opções por engano.
+- Se SDL2 não informar a tela física, a aplicação utiliza as dimensões de
+  renderização disponíveis. Sem nenhuma informação confiável, volta a 640×480.
+- Se o driver não conseguir criar o canvas de escalonamento, o aplicativo tenta
+  voltar à renderização direta em 640×480, preservando os botões e a navegação.
+- O console registra em `log.txt` a resolução detectada, a área de saída,
+  o fator de escala e as margens, em uma linha iniciada por `[DISPLAY]`.
+- No PC, a janela inicia em 640×480 e pode ser redimensionada para testes;
+  não é forçado modo de tela cheia fora dos caminhos de console.
+- A atualização OTA e os arquivos pessoais em `state/` não foram alterados.
+
+**Observação:** os testes automatizados verificam a geometria e a sintaxe.
+A detecção do painel físico depende da CFW/SDL2 e precisa ser verificada no
+console real na primeira execução após a atualização.
 
 ## Etapa 1 — Central de Downloads (0.4.10-beta)
 
