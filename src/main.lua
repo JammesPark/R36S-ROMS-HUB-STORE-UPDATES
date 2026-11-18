@@ -1770,6 +1770,50 @@ function love.mousepressed(x,y,button)
   if button~=1 then return end
   x,y=display.pointer(x,y)
   if not x then return end -- toque nas margens pretas nao ativa menus
+  if settings.layout=='studio' and screen~='startup' and
+     screen~='first_language' and screen~='disclaimer' and
+     not (qrModal or duplicateModal or pendingDelete or storeUpdateModal or updateConfirm) then
+    local action=studioUI.click(x,y)
+    if not action then return end
+    if action.kind=='legacy' then
+      x,y=action.x,action.y -- reusa handlers e confirmacoes originais
+    elseif action.kind=='nav' then
+      studioNavFocus=false
+      if action.value=='exit' then navigate('exit_confirm')
+      elseif action.value then mainRoute(action.value) end
+      return
+    elseif action.kind=='goto' then navigate(action.value);return
+    elseif action.kind=='key' then handleKey(action.value);return
+    elseif action.kind=='game' then
+      local list=screen=='search_results' and external.searchResults or external.games
+      if list[action.value] then
+        if screen=='search_results' then searchResultIndex=action.value
+        elseif screen=='catalog' then gameIndex=action.value
+        else homeSlideIndex=action.value end
+        enterGame(list[action.value])
+      end
+      return
+    elseif action.kind=='category' then
+      categoryIndex=action.value;chooseCategory();return
+    elseif action.kind=='card' then
+      if action.value==1 or action.value==2 then selectedCard=action.value end
+      return
+    elseif action.kind=='color' then
+      for i,v in ipairs(theme.options) do
+        if v.key==action.value then themeIndex=i;changeTheme();break end
+      end
+      return
+    elseif action.kind=='layout' then
+      layoutIndex=action.value=='studio' and 2 or 1
+      changeLayout();return
+    elseif action.kind=='transfer' then
+      transferCenter.move(action.value-transferCenter.selected);return
+    elseif action.kind=='favorite' then
+      favIndex=action.value
+      enterGame(favorites[favIndex]);return
+    elseif action.kind=='installed' then installIndex=action.value;return
+    end
+  end
   if screen=='bios' and biosUI.hasModal() then
     biosUI.mouse(x,y)
     return
@@ -1847,6 +1891,11 @@ function love.mousepressed(x,y,button)
   elseif screen=='font_size' then
     local idx=math.floor((y-146)/78)+1
     if y>=146 and fontSizes[idx] then fontSizeIndex=idx;changeFontSize() end
+  elseif screen=='layout_choice' then
+    if y>=166 and y<=369 then
+      if x>=180 and x<=396 then layoutIndex=1;changeLayout()
+      elseif x>=401 and x<=617 then layoutIndex=2;changeLayout() end
+    end
   elseif screen=='themes' then
     local col=math.floor((x-180)/149)
     local row=math.floor((y-126)/94)
