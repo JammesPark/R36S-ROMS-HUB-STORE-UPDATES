@@ -1,5 +1,16 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.14-beta — 18/11/2026
+- Segundo tema visual da loja: **Studio**, com menu superior e 640×480.
+- O tema **Clássico** continua disponível e é o padrão das instalações antigas.
+- Configurações: seleção persistente de layout Clássico/Studio, separada de cores.
+- Studio inclui paletas completas Oceano, Esmeralda, Violeta, Âmbar e Ardósia.
+- ROMs, capas, favoritos, Downloads e configurações utilizam dados reais.
+- BIOS, Temas ES e OTA preservam controles e motores originais em moldura Studio.
+- SELECT permite focar o menu superior; clique/toque nas capas, menus e cartões.
+- Tratamento de falhas do renderizador alternativo retorna ao visual Clássico.
+- Testes de 29 rotas Lua, paletas, input, 640×480 e regressão OTA.
+
 ## 0.4.13-beta — 18/11/2026
 - Aplicado o conceito HTML aprovado da tela Início ao código Lua/LÖVE 11.5.
 - Novo "Em destaque" com três capas verticais 2:3 acima das contagens de jogos.
