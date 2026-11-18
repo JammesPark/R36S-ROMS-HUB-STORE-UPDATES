@@ -1,5 +1,15 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.12-beta — 18/11/2026
+- Detecção automática da resolução de exibição do console via SDL2/LÖVE.
+- Fullscreen no tamanho detectado e escalonamento proporcional do layout-base 640×480.
+- Margens simétricas para manter proporção de 4:3, sem cortar menus ou esticar imagens.
+- Conversão dos eventos de mouse para a área virtual, ignorando cliques fora dela.
+- Fallback para renderização direta 640×480 quando o driver não suporta canvas.
+- Log de resolução, escala, origem da detecção e margens para diagnóstico.
+- Testes automatizados de sete resoluções, troca dinâmica de modo, entrada e falhas de driver.
+- OTA, backups e dados do usuário mantidos inalterados.
+
 ## 0.4.11-beta — 18/11/2026
 - Tela Início agora exibe velocidade e ETA do download em andamento usando a mesma leitura da Central de Downloads.
 - Faixa inferior do painel reorganizada para bytes, velocidade e tempo restante sem sobreposição em 640x480.
