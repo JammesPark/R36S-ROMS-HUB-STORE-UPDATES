@@ -324,28 +324,39 @@ local function fallback(c,legacy)
   return
  end
  local g=love.graphics
- local ok,err=pcall(function()
+ local prepared,prepErr=pcall(function()
   if not S.canvas then
    S.canvas=g.newCanvas(640,480,{format='normal',msaa=0})
    S.canvas:setFilter('linear','linear')
   end
-  g.push('all')
+  if not S.quad then S.quad=g.newQuad(179,102,441,326,640,480) end
+ end)
+ if not prepared then
+  -- Drivers sem Canvas continuam com acesso aos motores pelas teclas.
+  print('[STUDIO] canvas indisponivel: '..tostring(prepErr):sub(1,140))
+  title(c,'SISTEMA / '..string.upper(c.screen or ''), 'Modo seguro')
+  tx('Interface clássica disponível em Configurações > Tema da interface.',
+    25,236,11,T.muted,588,true)
+  return
+ end
+ -- push/pop permanece equilibrado mesmo se o corpo legado falhar.
+ g.push('all')
+ local ok,err=pcall(function()
   g.setCanvas(S.canvas)
   g.origin()
   g.clear(0,0,0,0)
   legacy()
-  g.pop()
-  -- Quadro com as funções reais, preservando aspecto do desenho legado.
-  panel(75,116,491,322)
-  local quad=g.newQuad(179,102,441,326,640,480)
-  U.color({1,1,1})
-  g.draw(S.canvas,quad,84,119)
  end)
- if not ok then
-  -- Tela segura, sem ocultar o menu superior se o driver nao aceitar canvas.
-  print('[STUDIO] fallback sem render auxiliar: '..tostring(err):sub(1,180))
-  title(c,'SISTEMA / '..string.upper(c.screen or ''), 'Visualização simplificada')
-  tx('Use A/B para navegar. Os dados e o motor estão preservados.',25,238,12,T.muted,588,true)
+ g.pop()
+ if ok then
+  panel(75,116,491,322)
+  U.color({1,1,1})
+  g.draw(S.canvas,S.quad,84,119)
+ else
+  print('[STUDIO] erro no corpo: '..tostring(err):sub(1,180))
+  title(c,'SISTEMA / '..string.upper(c.screen or ''), 'Modo seguro')
+  tx('Pressione B para voltar. Seus dados não foram alterados.',
+     25,238,11,T.muted,588,true)
  end
  -- Mapeia a area antiga de clique para o conteudo centralizado.
  tap(84,119,441,326,'legacy',nil,{sourceX=179,sourceY=102})
@@ -359,7 +370,7 @@ function S.draw(c,legacy)
   return
  end
  top(c)
- if screen=='home' then home(c)
+ if screen=='home' or screen=='exit_confirm' then home(c)
  elseif screen=='catalog' then catalog(c,false)
  elseif screen=='search_results' then catalog(c,true)
  elseif screen=='detail' then detail(c)
