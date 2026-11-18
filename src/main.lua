@@ -14,6 +14,7 @@ local biosUI=require('bios_enhanced_ui') -- layout nativo + motor de BIOS GPL-3.
 local esUI=require('es_theme_ui') -- temas ES: catálogo ThemeMaster/OGA e instalador isolado
 local transferCenter=require('download_center') -- ROM, BIOS, temas e atualização OTA
 local transferQueue=require('transfer_queue') -- fila persistente; motores mantem validacoes
+local display=require('display_resolution') -- tela fisica + viewport 640x480
 local HOME=os.getenv('R36S_STORE_HOME') or '/roms/ports/r36s-roms-store'
 local STATE=HOME..'/state'
 local mainPages={'home','catalog','bios','es_themes','downloads','installed','favorites','settings','about'}
@@ -1098,6 +1099,7 @@ local function deleteDialog()
 end
 function love.load()
   love.graphics.setDefaultFilter('linear','linear')
+  display.init() -- identifica tela real e cria canvas apenas quando necessario
   ui.init();loadData()
   storeUpdater.init(HOME,STATE)
   biosManager.init(HOME)
@@ -1182,7 +1184,7 @@ function love.update(dt)
   if external.error and screen=='transferring' then screen='downloads' end
   lastStatus=external.phase
 end
-function love.draw()
+local function drawVirtual()
   if screen=='startup' then splashPage();ui.statusBar(device.get());return end
   if screen=='first_language' then firstLanguagePage();return end
   if screen=='disclaimer' then disclaimerPage();return end
@@ -1224,6 +1226,14 @@ function love.draw()
   if pendingDelete then deleteDialog() end
   if storeUpdateModal then storeUpdateOfferPage() end
   if updateConfirm then storeUpdateConfirmPage() end
+end
+function love.draw()
+  local inCanvas=display.beginFrame()
+  drawVirtual()
+  display.endFrame(inCanvas)
+end
+function love.resize(w,h)
+  display.resize(w,h)
 end
 local function changeTheme()
   local o=theme.options[themeIndex];if not o then return end
@@ -1641,6 +1651,8 @@ function love.textinput(t)
 end
 function love.mousepressed(x,y,button)
   if button~=1 then return end
+  x,y=display.pointer(x,y)
+  if not x then return end -- toque nas margens pretas nao ativa menus
   if screen=='bios' and biosUI.hasModal() then
     biosUI.mouse(x,y)
     return
