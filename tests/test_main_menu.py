@@ -10,7 +10,17 @@ assert nav
 pages=re.findall(r"'([^']+)'",nav.group(1))
 assert pages==['home','catalog','bios','es_themes','downloads','installed','favorites','settings','about','exit'],pages
 assert 114+31*(len(pages)-1)+29 <= 424
-assert "local suboptions={'languages','themes','font_size','storage','network','updates','help'}" in s
+assert "local suboptions={'languages','layout_choice','themes','font_size','storage','network','updates','help'}" in s
+studio=(root/'src/studio_ui.lua').read_text(encoding='utf8')
+theme=(root/'src/theme.lua').read_text(encoding='utf8')
+assert "studioUI.draw(studioContext(),drawClassicVirtual)" in s
+assert "local studioUI=require('studio_ui')" in s
+assert "theme.setLayout(settings.layout)" in s
+assert "encodeString(settings.layout)" in s
+assert "layout_choice" in i18n and "theme_slate" in i18n
+assert "local P={" in theme and "emerald=" in theme and "slate=" in theme
+assert "function S.draw(c,legacy)" in studio and "function S.click(x,y)" in studio
+assert "elseif screen=='layout_choice' then layoutChoicePage()" in s
 assert "if route=='es_themes' then esUI.enter() end" in s
 assert "elseif screen=='es_themes' then esThemesPage()" in s
 assert "bios='chip',es_themes='layers'" in ui
