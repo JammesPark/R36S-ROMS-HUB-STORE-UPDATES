@@ -1,4 +1,33 @@
-# R36S ROMS STORE — 0.4.13-beta
+# R36S ROMS STORE — 0.4.14-beta
+
+## Segundo tema nativo: Layout B — Studio (0.4.14-beta)
+
+O **Clássico** continua sendo o tema inicial, preservado sem migração
+obrigatória. Em **Configurações → Tema da interface**, selecione **Studio**
+para mudar para a interface horizontal inspirada no protótipo HTML aprovado.
+Esta versão é uma **implementação em Lua/LÖVE 11.5**, não um navegador HTML.
+
+- **Studio:** navegação horizontal de dez seções, cartões com capas verticais,
+  painel de download, catálogo, favoritos, detalhes, configurações e
+  gerenciador de downloads exibindo dados reais.
+- **Cinco paletas completas:** Oceano, Esmeralda, Violeta, Âmbar e Ardósia.
+  A opção **Cor do tema** altera fundos, cabeçalhos, bordas, cartões,
+  botões e textos, não apenas a cor dos ícones. O Clássico mantém suas
+  opções de cores anteriores.
+- **Navegação:** **SELECT** (no SDL2, botão back) abre/fecha a seleção do
+  menu superior; direcional esquerda/direita e **A** mudam a seção.
+  A navegação tradicional e os motores de ROMs, BIOS, temas do
+  EmulationStation e OTA permanecem os mesmos.
+- **Telas especializadas:** BIOS, temas ES e rotinas OTA reutilizam os
+  controles e conteúdos originais **dentro da moldura Studio**; não há
+  substituição do motor de instalação e de verificações SHA-256.
+- A escolha Clássico/Studio é armazenada em `state/roms_settings.json`.
+  Uma falha de desenho no Studio restaura o visual Clássico, mantendo
+  os dados e o acesso ao aplicativo.
+- Uma bateria de testes offline cobre 29 rotas Lua, paletas,
+  geometria de 640×480, controle de seleção e regressões OTA.
+  A apresentação exata em BIOS/ES e o controle físico ainda dependem
+  de validação no R36S.
 
 ## Layout aprovado do protótipo HTML (0.4.13-beta)
 
