@@ -141,7 +141,7 @@ function M.download(g,card,overwrite)
   if not g or not g.game_path or not g.category then return false end
   local ok=M.request('download',{g.game_path,g.category,card==2 and 'sd2' or 'sd1',g.name or 'ROM',g.sha256 or '',overwrite and '1' or '0'})
   if ok then
-    M.activeDownload={name=g.name or 'ROM',card=card}
+    M.activeDownload={name=g.name or 'ROM',card=card,t0=os.time()}
     M.downloaded=0;M.expected=0
   end
   return ok
@@ -170,10 +170,22 @@ function M.update()
   M.downloaded=tonumber(s.downloaded) or M.downloaded or 0
   M.expected=tonumber(s.expected) or 0
   if M.phase=='cancelled' then
-    M.pending=nil;M.activeDownload=nil
+    if M.pending=='download' and M.activeDownload then
+      M.lastDownload={name=M.activeDownload.name,card=M.activeDownload.card,
+        t0=M.activeDownload.t0,phase='cancelled',done=M.downloaded,total=M.expected,
+        message=s.message}
+      M.activeDownload=nil
+    end
+    M.pending=nil
     M.message=s.message or 'Download cancelado'
   elseif M.phase=='error' then
     local task=M.pending
+    if task=='download' and M.activeDownload then
+      M.lastDownload={name=M.activeDownload.name,card=M.activeDownload.card,
+        t0=M.activeDownload.t0,phase='error',done=M.downloaded,total=M.expected,
+        message=s.message}
+      M.activeDownload=nil
+    end
     M.error=true;M.pending=nil
     if task=='categories' or task=='games' or task=='search' then M.connected=false end
     M.maintenance=M.message:lower():find('manuten',1,true)~=nil or M.message:lower():find('maintenance',1,true)~=nil
