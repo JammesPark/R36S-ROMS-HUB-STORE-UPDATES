@@ -14,6 +14,7 @@ local biosUI=require('bios_enhanced_ui') -- layout nativo + motor de BIOS GPL-3.
 local esUI=require('es_theme_ui') -- temas ES: catálogo ThemeMaster/OGA e instalador isolado
 local transferCenter=require('download_center') -- ROM, BIOS, temas e atualização OTA
 local transferQueue=require('transfer_queue') -- fila persistente; motores mantem validacoes
+local homeLayout=require('home_layout') -- geometria do conceito aprovado em 640x480
 local display=require('display_resolution') -- tela fisica + viewport 640x480
 local HOME=os.getenv('R36S_STORE_HOME') or '/roms/ports/r36s-roms-store'
 local STATE=HOME..'/state'
@@ -352,14 +353,16 @@ local function footer(phrase)
 end
 local function card(game,x,y,w,h,idx,active,badge)
   panel(x,y,w,h,active)
-  -- A imagem inteira fica visível; texto isolado numa faixa inferior.
-  local coverH=h-34
-  cover(game,x+3,y+3,w-6,coverH-4,idx)
+  -- Cartao de Favoritos: capa 2:3 centralizada, sem distorcao.
+  local coverH=102
+  local coverW=68
+  local cx=x+(w-coverW)/2
+  cover(game,cx,y+4,coverW,coverH,idx)
   if badge then
-    R(x+7,y+coverH-19,w-14,17,theme.sidebar,4,nil,.93)
-    txt(ui.ellipsize(badge,18),x+10,y+coverH-16,10,theme.accent,w-20)
+    R(cx,y+coverH-14,coverW,13,theme.sidebar,3,nil,.95)
+    txt(ui.ellipsize(badge,11),cx+2,y+coverH-12,8,theme.accent,coverW-4,true)
   end
-  txt(ui.ellipsize(game.name or '?',26),x+7,y+h-29,10,theme.text,w-14)
+  txt(ui.ellipsize(game.name or '?',24),x+5,y+h-20,9,theme.text,w-10,true)
   if active then ui.stroke(x,y,w,h,theme.accent,9,2) end
 end
 local function centerEmpty(text,sub)
@@ -414,45 +417,40 @@ local function homePage()
     ui.stroke(actionX,actionY,actionW,actionH,theme.text,7,2)
   end
   txt(tr('view_downloads'),actionX+4,actionY+9,10,theme.accent,actionW-8,true)
-  -- Os titulos compartilham a mesma altura, mas o destaque e centralizado
-  -- pelo retangulo REAL do slide para evitar deslocamentos visuais.
-  local sectionTitleY=209
-  local slideX,slideY,slideW,slideH=428,237,166,187
-  txt(tr('overview'),180,sectionTitleY,12,theme.text,190)
-  txt(tr('featured'),slideX,sectionTitleY,12,theme.text,slideW,true)
+  -- Conceito HTML aprovado: "Em destaque" acima, tres capas 2:3,
+  -- e contagens reais do catalogo, instalados e favoritos abaixo.
+  txt(tr('featured'),180,homeLayout.titleY,12,theme.text,295)
+  txt('2:3',575,homeLayout.titleY+1,9,theme.low,43,true)
+  local total=#external.games
+  if total>0 then homeSlideIndex=math.max(1,math.min(total,homeSlideIndex)) end
+  local first,last=homeLayout.window(total,homeSlideIndex)
+  for slot=1,3 do
+    local x=homeLayout.tileX[slot]
+    local index=first+slot-1
+    local game=index<=last and external.games[index] or nil
+    local active=game and focus=='content' and homeFocus=='featured'
+      and homeSlideIndex==index
+    panel(x,homeLayout.tileY,homeLayout.tileW,homeLayout.tileH,active)
+    if game then
+      local px=x+(homeLayout.tileW-homeLayout.coverW)/2
+      cover(game,px,homeLayout.coverY,homeLayout.coverW,homeLayout.coverH,index)
+      txt(ui.ellipsize(game.name or '?',17),x+6,homeLayout.tileY+126,
+        9,active and theme.accent or theme.text,homeLayout.tileW-12,true)
+    elseif total==0 and slot==2 then
+      txt(tr('loading'),x+7,homeLayout.tileY+58,10,theme.muted,homeLayout.tileW-14,true)
+    end
+  end
   local count=totalRoms()
-  local stats={{tr('catalog_games'),count and tostring(count) or '—'},
-    {tr('installed_games'),tostring(#downloads)},
+  local stats={{tr('catalog'),count and tostring(count) or '—'},
+    {tr('installed'),tostring(#downloads)},
     {tr('favorites'),tostring(#favorites)}}
   for i,item in ipairs(stats) do
-    local y=237+(i-1)*64
-    panel(180,y,190,57,focus=='content' and homeFocus=='overview' and homeOverviewIndex==i)
-    txt(ui.ellipsize(item[1],23),191,y+6,11,theme.muted,166)
-    txt(item[2],191,y+27,19,theme.accent,162)
-  end
-  -- Area visual limpa: so capa + indicadores (sem nomes de ROMs).
-  panel(slideX,slideY,slideW,slideH,focus=='content' and homeFocus=='featured')
-  local total=#external.games
-  if total==0 then
-    txt(tr('loading'),slideX+8,299,11,theme.muted,slideW-16,true)
-  else
-    homeSlideIndex=math.max(1,math.min(total,homeSlideIndex))
-    local game=external.games[homeSlideIndex]
-    -- A capa ocupa o cartao quase inteiro; o rodape reserva apenas as bolinhas.
-    -- ui.poster e chamado sem showName no fallback offline.
-    coverStretch(game,slideX+6,slideY+6,slideW-12,slideH-32,homeSlideIndex)
-    if total>1 then
-      local shown=math.min(5,total)
-      local first=math.max(1,math.min(homeSlideIndex-math.floor(shown/2),total-shown+1))
-      local step=11
-      local dotCenterX=slideX+slideW/2
-      local firstDotX=dotCenterX-(shown-1)*step/2
-      for n=0,shown-1 do
-        local dotIndex=first+n
-        ui.color(dotIndex==homeSlideIndex and theme.accent or theme.low)
-        love.graphics.circle('fill',firstDotX+n*step,slideY+slideH-10,dotIndex==homeSlideIndex and 2.9 or 1.9)
-      end
-    end
+    local x=homeLayout.tileX[i]
+    local active=focus=='content' and homeFocus=='overview' and homeOverviewIndex==i
+    panel(x,homeLayout.statsY,homeLayout.tileW,homeLayout.statsH,active)
+    txt(item[2],x+10,homeLayout.statsY+4,16,theme.accent,homeLayout.tileW-20)
+    txt(ui.ellipsize(item[1],17),x+10,homeLayout.statsY+26,9,theme.muted,
+      homeLayout.tileW-20)
   end
   footer()
 end
@@ -477,9 +475,11 @@ local function gameList(items,chosen)
   end
   local selected=items[math.max(1,math.min(total,chosen))]
   panel(428,128,191,289,true)
-  -- Apenas a capa do jogo selecionado: amplia até preencher, sem títulos extras.
-  coverStretch(selected,434,134,179,277,chosen)
-  ui.stroke(431,131,185,283,theme.accent,7,1)
+  -- Preview vertical 2:3, sem esticar capas. Botao de detalhes abaixo.
+  cover(selected,443,137,160,240,chosen)
+  R(439,386,169,29,theme.accent,7)
+  txt(tr('details')..' ›',441,395,11,theme.bg,165,true)
+  ui.stroke(430,130,187,286,theme.accent,7,1)
 end
 local function catalogPage()
   header(tr('library'),tr('title_catalog'))
@@ -513,7 +513,7 @@ local function detailsPage()
   header(tr('game'),tr('detail'))
   if not g then centerEmpty(tr('invalid'));footer();return end
   panel(179,113,441,260)
-  cover(g,192,129,171,201,gameIndex)
+  cover(g,201,130,150,225,gameIndex)
   txt(ui.ellipsize(g.name,32),376,138,17,theme.text,228)
   txt(tostring(g.category or ''):upper(),376,183,12,theme.accent,228)
   txt('● '..sdLocation(g),376,211,11,theme.muted,220)
@@ -1341,19 +1341,24 @@ local function handleHomeInput(key)
     else
       if key=='up' then
         if homeFocus=='featured' then homeFocus='explore'
-        elseif homeFocus=='overview' then homeOverviewIndex=math.max(1,homeOverviewIndex-1) end
+        elseif homeFocus=='overview' then homeFocus='featured' end
       elseif key=='down' then
         if homeFocus=='explore' then homeFocus='featured'
-        elseif homeFocus=='overview' then homeOverviewIndex=math.min(3,homeOverviewIndex+1) end
+        elseif homeFocus=='featured' then homeFocus='overview' end
       elseif key=='left' then
-        if homeFocus=='featured' then homeFocus='overview'
-        elseif homeFocus=='explore' then focus='sidebar'
-        elseif homeFocus=='overview' then focus='sidebar' end
+        if homeFocus=='featured' then
+          if homeSlideIndex>1 then homeSlideIndex=homeSlideIndex-1;homeSlideClock=0
+          else focus='sidebar' end
+        elseif homeFocus=='overview' then
+          if homeOverviewIndex>1 then homeOverviewIndex=homeOverviewIndex-1
+          else focus='sidebar' end
+        elseif homeFocus=='explore' then focus='sidebar' end
       elseif key=='right' then
-        if homeFocus=='overview' then homeFocus='featured'
+        if homeFocus=='overview' then
+          homeOverviewIndex=math.min(3,homeOverviewIndex+1)
         elseif homeFocus=='explore' then homeFocus='featured'
-        elseif homeFocus=='featured' and #external.games>1 then
-          homeSlideIndex=homeSlideIndex%#external.games+1;homeSlideClock=0
+        elseif homeFocus=='featured' and homeSlideIndex<#external.games then
+          homeSlideIndex=homeSlideIndex+1;homeSlideClock=0
         end
       elseif key=='a' then
         if homeFocus=='featured' then
@@ -1758,13 +1763,16 @@ function love.mousepressed(x,y,button)
   elseif screen=='home' then
     if x>=495 and x<=607 and y>=147 and y<=179 then
       focus='content';homeFocus='explore';mainRoute('downloads')
-    elseif x>=428 and x<=594 and y>=227 and y<=424 then
-      focus='content';homeFocus='featured';enterGame(external.games[homeSlideIndex])
-    elseif x>=180 and x<=370 and y>=237 and y<=422 then
-      local index=math.floor((y-237)/64)+1
-      if index>=1 and index<=3 then
-        homeFocus='overview';homeOverviewIndex=index
-        local targets={'catalog','installed','favorites'};mainRoute(targets[index])
+    else
+      local index=homeLayout.featureAt(x,y,#external.games,homeSlideIndex)
+      local stat=homeLayout.statAt(x,y)
+      if index then
+        focus='content';homeFocus='featured';homeSlideIndex=index;homeSlideClock=0
+        enterGame(external.games[index])
+      elseif stat then
+        focus='content';homeFocus='overview';homeOverviewIndex=stat
+        local targets={'catalog','installed','favorites'}
+        mainRoute(targets[stat])
       end
     end
   elseif screen=='detail' then if y>=280 then handleKey('a') end
