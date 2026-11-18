@@ -1114,8 +1114,9 @@ function love.update(dt)
   biosManager.tick()
   biosUI.update()
   esUI.update(dt)
-  transferQueue.tick(external,biosUI,esUI)
+  -- Registra primeiro o resultado final antes de iniciar a proxima tarefa.
   transferCenter.poll(external,biosUI,esUI,storeUpdater,downloads,clock,transferQueue.visible())
+  transferQueue.tick(external,biosUI,esUI)
   if screen=='home' and storeUpdater.status.phase=='available' and not storeUpdater.offered then
     storeUpdater.offered=true
     storeUpdateModal=true
