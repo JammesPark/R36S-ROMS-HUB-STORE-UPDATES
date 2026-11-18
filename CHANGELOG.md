@@ -1,5 +1,11 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.11-beta — 18/11/2026
+- Tela Início agora exibe velocidade e ETA do download em andamento usando a mesma leitura da Central de Downloads.
+- Faixa inferior do painel reorganizada para bytes, velocidade e tempo restante sem sobreposição em 640x480.
+- Testes de regressão para garantir que Início e Downloads compartilham as mesmas métricas.
+- Fila, controles de downloads e atualização OTA mantidos.
+
 ## 0.4.10-beta — 18/11/2026
 - Etapa 1A: velocidade de download e ETA medidos com amostras reais na Central.
 - Etapa 1B: fila FIFO persistente para ROMs, BIOS e temas; seleção e ordem de execução seguras.
