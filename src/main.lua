@@ -1264,7 +1264,7 @@ local function studioContext()
   return {
     screen=screen,layout=settings.layout,lang=settings.language,color=settings.theme,
     colorName=colorName,languageName=languageName,font_size=settings.font_size,
-    tr=tr,nav=menuPages,navIndex=menuIndex,navFocus=studioNavFocus,
+    tr=tr,nav=menuPages,navIndex=menuIndex,navFocus=studioNavFocus or (screen=='home' and focus=='sidebar'),
     homeFocus=homeFocus,homeStatIndex=homeOverviewIndex,featuredIndex=homeSlideIndex,
     gameIndex=gameIndex,searchIndex=searchResultIndex,category=external.category,
     games=external.games,results=external.searchResults,categories=external.categories,
@@ -1279,7 +1279,15 @@ local function studioContext()
 end
 local function drawVirtual()
   if settings.layout~='studio' then return drawClassicVirtual() end
-  studioUI.draw(studioContext(),drawClassicVirtual)
+  local ok,err=pcall(studioUI.draw,studioContext(),drawClassicVirtual)
+  if not ok then
+    -- Falha do layout opcional nao pode impedir a loja de inicializar.
+    print('[STUDIO] Erro visual: '..tostring(err):sub(1,250)..' - restaurando Classico')
+    settings.layout='classic';studioNavFocus=false
+    theme.setLayout('classic');saveSettings()
+    drawClassicVirtual()
+    return
+  end
   -- Modais mantem exatamente as confirmacoes seguras dos motores existentes.
   if screen=='exit_confirm' then exitDialog() end
   if qrModal then qrPage() end
