@@ -21,6 +21,10 @@ m.poll(rom,bios,es,upd,{},12)
 assert(m.active[1].speed>0 and m.active[1].eta>0)
 assert(m.rateText(m.active[1]):find('KB/s',1,true))
 assert(m.etaText(m.active[1])~='—')
+assert(m.rateText(m.current())==m.rateText(m.active[1]),
+       'Inicio e Downloads devem compartilhar velocidade')
+assert(m.etaText(m.current())==m.etaText(m.active[1]),
+       'Inicio e Downloads devem compartilhar tempo restante')
 rom.downloaded=20
 bios.job=function() return {op='download',state='running',phase='download',done=50,total=200,t0=12} end
 es.transfer=function() return {task='install',job_id='unit001',name='Exemplo',phase='downloading',downloaded=25,total=100} end
