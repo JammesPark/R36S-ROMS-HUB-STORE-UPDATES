@@ -5,6 +5,7 @@ local ui=require('ui')
 local theme=require('theme')
 local json=require('json')
 local M={items={},all={},selected=1,sizeIndex=2,modal=nil,status='',installed={},source='local',busy=false,
+  transferState=nil,previewBusy=false,previewAttempted={},previewRaw=nil,previewImages={},previewOrder={},
   lang='pt',timer=0,seenRaw=nil,selection='themes',available=false}
 local RES={'480x320','640x480','854x480','960x544','720x720'}
 local T={
@@ -58,6 +59,79 @@ end
 local function installed_path(item)
  return M.installed[string.lower(item.folder or '')]
 end
+local function cover_path(id)
+ if not tostring(id or ''):match('^[%w._%-]+$') then return nil end
+ local base=M.home..'/state/es_theme_covers/'..id:lower()
+ for _,ext in ipairs({'.png','.jpg'}) do
+  local name=base..ext
+  local f=io.open(name,'rb')
+  if f then f:close();return name end
+ end
+ return nil
+end
+local function cover_image(item)
+ if not item or not M.home or not (love and love.graphics and love.graphics.newImage) then return nil end
+ local id=tostring(item.id or '')
+ if M.previewImages[id] then return M.previewImages[id] end
+ local path=cover_path(id)
+ if not path then return nil end
+ local raw=file_read(path)
+ if not raw or #raw>2*1024*1024 then return nil end
+ local ok,data=pcall(love.filesystem.newFileData,raw,path:match('[^/]+$') or 'preview.png')
+ if not ok then return nil end
+ local valid,img=pcall(love.graphics.newImage,data)
+ if not valid or not img then return nil end
+ img:setFilter('linear','linear')
+ M.previewImages[id]=img
+ M.previewOrder[#M.previewOrder+1]=id
+ if #M.previewOrder>10 then
+  local old=table.remove(M.previewOrder,1)
+  M.previewImages[old]=nil
+ end
+ return img
+end
+local function draw_cover(item,x,y,w,h)
+ rect(x,y,w,h,theme.panel2,4,theme.border)
+ local img=cover_image(item)
+ if not img then
+  txt('▧',x+5,y+h/2-10,17,theme.muted,w-10,true)
+  return
+ end
+ local iw,ih=img:getWidth(),img:getHeight()
+ if iw<=0 or ih<=0 then return end
+ local scale=math.min(w/iw,h/ih)
+ ui.color({1,1,1})
+ love.graphics.draw(img,x+(w-iw*scale)/2,y+(h-ih*scale)/2,0,scale,scale)
+end
+local function request_previews()
+ if M.previewBusy or not M.home then return end
+ local first=math.max(1,math.min(M.selected-2,math.max(1,#M.items-5)))
+ local ids={}
+ for idx=first,math.min(#M.items,first+5) do
+  local item=M.items[idx]
+  if item and item.preview and item.preview~='' and
+     tostring(item.id or ''):match('^[%w._%-]+$') and not cover_path(item.id) and
+     not M.previewAttempted[item.id] then
+    ids[#ids+1]=item.id
+    M.previewAttempted[item.id]=true
+  end
+ end
+ if #ids==0 then return end
+ M.previewBusy=true;M.previewRaw=nil
+ os.remove(M.home..'/state/es_theme_covers_status.json')
+ local cmd='python3 '..shq(M.home..'/bin/es_theme_manager.py')..' previews'
+ for _,id in ipairs(ids) do cmd=cmd..' '..shq(id) end
+ local ok=os.execute('( '..cmd..' >/dev/null 2>&1 ) &')
+ if ok==false or ok==nil then M.previewBusy=false end
+end
+local function read_previews()
+ local raw=file_read(M.home..'/state/es_theme_covers_status.json')
+ if not raw or raw==M.previewRaw then return end
+ M.previewRaw=raw
+ local ok,data=pcall(json.decode,raw)
+ if ok and type(data)=='table' and data.phase=='done' then M.previewBusy=false end
+end
+function M.transfer() return M.transferState end
 local function recalc()
  local prev=M.items[M.selected] and M.items[M.selected].id
  M.items={}
@@ -85,6 +159,7 @@ local function read_status()
   M.busy=true
  elseif data.phase=='done' or data.phase=='error' then M.busy=false end
  M.status=tostring(data.message or '')
+ if data.task=='install' then M.transferState=data end
  if type(data.installed)=='table' then M.installed=data.installed end
  if type(data.themes)=='table' and #data.themes>0 then
   M.all=data.themes;recalc()
@@ -105,6 +180,7 @@ local function spawn(op,id,size)
 end
 function M.init(home)
  M.home=home
+ M.previewBusy=false;M.previewAttempted={};M.previewImages={};M.previewOrder={}
  local ok,why=require('ota_bootstrap').run(home)
  if not ok then M.status='OTA: '..tostring(why) end
  local preferred=file_read(home..'/state/es_theme_resolution.txt') or ''
@@ -136,7 +212,7 @@ function M.enter()
 end
 function M.update(dt)
  M.timer=M.timer+(dt or 0)
- if M.timer>=0.6 then M.timer=0;read_status() end
+ if M.timer>=0.6 then M.timer=0;read_status();read_previews();request_previews() end
 end
 function M.size() return selected_size() end
 function M.change_size(step)
@@ -158,26 +234,24 @@ function M.draw(header,lang)
   if it then
    local y=140+row*45
    ui.panel(180,y,251,42,i==M.selected)
-   txt(ell(it.name,29),191,y+5,11,theme.text,230)
+   draw_cover(it,185,y+4,54,34)
+   txt(ell(it.name,22),246,y+5,11,theme.text,177)
    local s=installed_path(it) and t('installed') or
      (compatible(it)=='yes' and t('good') or t('untested'))
-   txt(ell(it.author or it.source or '',23),191,y+25,9,theme.muted,154)
-   txt(s,336,y+25,9,installed_path(it) and theme.green or theme.accent,88,true)
+   txt(ell(it.author or it.source or '',19),246,y+24,9,theme.muted,98)
+   txt(s,343,y+24,9,installed_path(it) and theme.green or theme.accent,78,true)
   end
  end
  ui.panel(440,140,180,266)
  local it=M.items[M.selected]
  if it then
-  txt(ell(it.name,21),452,154,13,theme.accent,157)
-  txt(t('author')..':',452,190,9,theme.low,154)
-  txt(ell(it.author or t('unknown'),22),452,206,10,theme.text,154)
-  txt(t('status')..':',452,237,9,theme.low,154)
-  txt(compatible(it)=='yes' and t('good') or t('untested'),452,253,10,
-    compatible(it)=='yes' and theme.green or theme.accent,155)
-  txt(t('folder')..':',452,281,9,theme.low,154)
-  txt(ell(it.folder or '?',25),452,297,9,theme.text,154)
-  rect(451,345,158,38,theme.accent,7)
-  txt(t('install'),456,355,12,theme.bg,146,true)
+  txt(ell(it.name,22),450,147,12,theme.accent,162,true)
+  draw_cover(it,451,171,158,108)
+  txt(t('author')..': '..ell(it.author or t('unknown'),16),451,286,10,theme.text,158)
+  txt(compatible(it)=='yes' and t('good') or t('untested'),451,309,10,
+    compatible(it)=='yes' and theme.green or theme.accent,158,true)
+  rect(451,351,158,36,theme.accent,7)
+  txt(t('install'),456,361,12,theme.bg,146,true)
  else
   txt(t('no'),453,210,11,theme.muted,154,true)
  end

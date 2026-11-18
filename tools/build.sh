@@ -16,9 +16,11 @@ fi
 if command -v lua5.3 >/dev/null; then
   lua5.3 tests/test_bios_ui.lua
   lua5.3 tests/test_es_themes_ui.lua
+  lua5.3 tests/test_transfer_center.lua
   lua5.3 tests/test_ota_bootstrap.lua
 fi
 python3 tests/test_es_theme_manager.py
+python3 tests/test_es_theme_previews.py
 python3 tests/test_main_menu.py
 printf '%s\n' "$VERSION" > src/VERSION
 printf '%s\n' "$VERSION" > port/r36s-roms-store/VERSION

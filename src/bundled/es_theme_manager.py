@@ -4,13 +4,18 @@ Adaptado às fontes da galeria ThemeMaster; não executa código dos ZIPs.
 Fonte: Jetup13/Emulationstation-OGA-Theme-Gallery, ThemeMaster e metadados
 GPL-3.0 do projeto R36SPORTSBR STORE. Sem arquivos de BIOS/jogos incluídos.
 """
-import json, os, re, sys, time, zipfile, shutil, stat, tempfile, pathlib, urllib.request
+import json, os, re, sys, time, zipfile, shutil, stat, tempfile, pathlib, urllib.request, urllib.parse, hashlib
 
 APP = pathlib.Path(os.environ.get('R36S_STORE_HOME', '/roms/ports/r36s-roms-store')).resolve()
 STATE = APP / 'state'
 SEED = APP / 'bin' / 'es_themes_seed.json'
 CACHE = STATE / 'es_theme_catalog.json'
 RESULT = STATE / 'es_theme_status.json'
+COVERS = STATE / 'es_theme_covers'
+COVER_STATUS = STATE / 'es_theme_covers_status.json'
+ACTIVE_TASK = ''
+ACTIVE_ID = ''
+ACTIVE_THEME = ''
 GALLERY = 'https://raw.githubusercontent.com/Jetup13/Emulationstation-OGA-Theme-Gallery/main/README.md'
 RES = ('480x320', '640x480', '854x480', '960x544', '720x720')
 COLLECTIONS = ('Jetup13', 'CodyV59', 'farfenkugell', 'EmuELEC', 'RetroPie')
@@ -37,7 +42,8 @@ def atomic_json(path, obj):
 
 
 def output(phase, message, **kwargs):
-    atomic_json(RESULT, {'phase': phase, 'message': str(message)[:260], 'time': time.time(), **kwargs})
+    atomic_json(RESULT, {'phase': phase, 'message': str(message)[:260], 'time': time.time(),
+                         'task': ACTIVE_TASK, 'job_id': ACTIVE_ID, 'name': ACTIVE_THEME, **kwargs})
 
 
 def get_url(url, limit=MAX_NET):
@@ -60,8 +66,11 @@ def download_to_file(url, dest, limit=MAX_ZIP):
     if not isinstance(url, str) or not url.startswith('https://'):
         raise ValueError('Download exige HTTPS')
     req = urllib.request.Request(url, headers={'User-Agent': 'R36S-ROM-Store/0.4.3 (themes)'})
-    total = 0
+    total, expected = 0, 0
     with urllib.request.urlopen(req, timeout=30) as response, dest.open('wb') as f:
+        expected = min(limit, max(0, int(response.headers.get('Content-Length') or 0)))
+        previous = 0
+        output('downloading', 'Baixando pacote do tema', downloaded=0, total=expected)
         while True:
             chunk = response.read(64 * 1024)
             if not chunk:
@@ -70,6 +79,10 @@ def download_to_file(url, dest, limit=MAX_ZIP):
             if total > limit:
                 raise ValueError('ZIP de tema excede o limite de tamanho')
             f.write(chunk)
+            if time.monotonic() - previous >= .30:
+                output('downloading', 'Baixando pacote do tema', downloaded=total, total=expected)
+                previous = time.monotonic()
+    output('downloading', 'Pacote recebido', downloaded=total, total=expected or total)
     return total
 
 
@@ -280,8 +293,10 @@ def install(theme_id, size):
     archive = tmp/'theme.zip'
     staging = tmp/'unpack'
     backup = None
+    global ACTIVE_THEME
+    ACTIVE_THEME = str(item.get('name') or folder)[:100]
     try:
-        output('downloading', 'Baixando tema ' + str(item.get('name')))
+        output('working', 'Preparando instalação de tema')
         downloaded = download_to_file(url, archive, MAX_ZIP)
         with zipfile.ZipFile(archive) as z:
             infos = z.infolist()
@@ -323,10 +338,99 @@ def install(theme_id, size):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# Capas de temas: somente imagens PNG/JPEG de fontes confiáveis, armazenadas
+# no cartão; nunca executamos o conteúdo nem carregamos imagens da rede no LÖVE.
+class PreviewRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not preview_url_allowed(newurl):
+            raise ValueError('Redirecionamento de capa não autorizado')
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def preview_url_allowed(url):
+    try:
+        u = urllib.parse.urlsplit(url)
+        return u.scheme == 'https' and u.hostname in (
+            'raw.githubusercontent.com', 'user-images.githubusercontent.com',
+            'github.com', 'githubusercontent.com') and not u.username and not u.password
+    except ValueError:
+        return False
+
+
+def preview_key(theme_id):
+    if not re.fullmatch(r'[a-zA-Z0-9._-]{1,130}', theme_id) or theme_id in ('.', '..'):
+        raise ValueError('ID de tema inválido')
+    return theme_id.lower()
+
+
+def preview_cached_path(theme_id):
+    key = preview_key(theme_id)
+    for ext in ('.png', '.jpg'):
+        p = COVERS / (key + ext)
+        if p.is_file():
+            return p
+    return None
+
+
+def fetch_previews(ids):
+    catalog = read_json(CACHE, {})
+    entries = catalog.get('themes') or seed_themes()
+    mapping = {t.get('id'): t for t in entries if isinstance(t, dict)}
+    COVERS.mkdir(parents=True, exist_ok=True)
+    result = {'phase': 'working', 'time': time.time(), 'done': 0, 'total': len(ids)}
+    atomic_json(COVER_STATUS, result)
+    count = 0
+    opener = urllib.request.build_opener(PreviewRedirect())
+    for theme_id in ids:
+        try:
+            entry = mapping.get(theme_id)
+            if entry is None:
+                continue
+            if preview_cached_path(theme_id):
+                count += 1
+                continue
+            url = entry.get('preview', '')
+            if not preview_url_allowed(url):
+                continue
+            req = urllib.request.Request(url, headers={'User-Agent': 'R36S-ROM-Store/0.4.5 (theme-previews)'})
+            with opener.open(req, timeout=15) as response:
+                raw = response.read(2 * 1024 * 1024 + 1)
+            if len(raw) > 2 * 1024 * 1024:
+                continue
+            ext = '.png' if raw.startswith(b'\x89PNG\r\n\x1a\n') else (
+                '.jpg' if raw.startswith(b'\xff\xd8\xff') else None)
+            if ext is None:
+                continue
+            dest = COVERS / (preview_key(theme_id) + ext)
+            tmp = dest.with_suffix(ext + '.part')
+            tmp.write_bytes(raw)
+            os.replace(tmp, dest)
+            count += 1
+        except (OSError, ValueError, TimeoutError, urllib.error.URLError):
+            pass  # Capa indisponível não deve impedir a instalação do tema.
+        finally:
+            result['done'] = result.get('done', 0) + 1
+            atomic_json(COVER_STATUS, result)
+    result.update(phase='done', cached=count, time=time.time())
+    atomic_json(COVER_STATUS, result)
+
+
 def main(argv):
-    if len(argv) < 2 or argv[1] not in ('refresh', 'scan', 'install'):
+    if len(argv) < 2 or argv[1] not in ('refresh', 'scan', 'install', 'previews'):
         return 2
     op = argv[1]
+    if op == 'previews':
+        if not 2 < len(argv) <= 9:
+            return 2
+        try:
+            fetch_previews(argv[2:])
+            return 0
+        except (OSError, ValueError):
+            return 1
+    global ACTIVE_TASK, ACTIVE_ID, ACTIVE_THEME
+    ACTIVE_TASK = op
+    ACTIVE_ID = str(time.time_ns()) + '-' + str(os.getpid())
+    ACTIVE_THEME = ''
     try:
         if op == 'install':
             if len(argv) != 4:

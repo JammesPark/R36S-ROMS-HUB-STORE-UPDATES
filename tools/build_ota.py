@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Gera TESTE/FONTE/UPDATE+manifesto OTA com listas fechadas.
 
-A versão 0.4.4-beta é propositalmente ponte para clientes <=0.4.1-beta.
-Versões seguintes passam a atualizar todos os binários autorizados.
+A versão 0.4.4-beta é ponte para clientes <=0.4.1-beta.
+Versões seguintes atualizam todos os binários autorizados.
 """
 import hashlib
 import importlib.util
@@ -84,10 +84,10 @@ mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 assert mod.safe_zip(update,VERSION)==frozenset(ALL)
 
 notes=(f'R36S ROMS STORE {VERSION}\n'
-       '- Atualizador OTA compatível com versões 0.4.1-beta e 0.4.3-beta.\n'
-       '- BIOS e Loja de Temas permanecem no menu principal.\n'
-       '- Bootstrap seguro de módulos no game.love; backup e rollback mantidos.\n'
-       '- O download depende de confirmação do usuário.\n')
+       '- Central de Downloads: ROMs, BIOS, Temas e atualizações da loja.\n'
+       '- Temas EmulationStation com prévias e capas em cache no SD.\n'
+       '- Nova ordem do menu: Início, Catálogo, BIOS, Temas, Downloads, Instalados, Favoritos, Configurações, Sobre e Sair.\n'
+       '- Mantidos SHA-256, backup/rollback e confirmação para instalar.\n')
 repo='https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v'+VERSION+'/'
 feed={"app":APP,"channel":"beta","status":"published","version":VERSION,
       "url":repo+update.name,"sha256":sha(update),"size":update.stat().st_size,"notes":notes,

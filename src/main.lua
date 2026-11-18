@@ -12,10 +12,11 @@ local storeUpdater=require('store_update')
 local biosManager=require('bios_manager') -- legado: importacao local preservada
 local biosUI=require('bios_enhanced_ui') -- layout nativo + motor de BIOS GPL-3.0
 local esUI=require('es_theme_ui') -- temas ES: catálogo ThemeMaster/OGA e instalador isolado
+local transferCenter=require('download_center') -- ROM, BIOS, temas e atualização OTA
 local HOME=os.getenv('R36S_STORE_HOME') or '/roms/ports/r36s-roms-store'
 local STATE=HOME..'/state'
-local mainPages={'home','catalog','downloads','installed','favorites','bios','es_themes','settings','about'}
-local menuPages={'home','catalog','downloads','installed','favorites','bios','es_themes','settings','about','exit'}
+local mainPages={'home','catalog','bios','es_themes','downloads','installed','favorites','settings','about'}
+local menuPages={'home','catalog','bios','es_themes','downloads','installed','favorites','settings','about','exit'}
 local screen='startup'
 local stack={}
 local settings={language='pt',theme='ocean',font_size='medium'}
@@ -543,53 +544,38 @@ local function confirmPage()
   txt(tr('confirm_download')..'  •  SD'..selectedCard,193,366,14,theme.bg,412,true)
   footer()
 end
-local function transfersPage(route)
+local function transfersPage()
   header(tr('downloads'),tr('title_downloads'))
-  -- Download em andamento no topo; downloads concluídos listados abaixo.
-  panel(180,89,440,130)
-  txt(tr('current_download'),195,98,12,theme.accent,408)
-  local active=external.activeDownload
-  local isCurrent=active and (external.pending=='download' or
-    (screen=='transferring' and external.phase~='done' and not external.error))
-  local finished=active and external.phase=='done' and not external.busy()
-  if isCurrent or finished then
-    txt(ui.ellipsize(active.name or '?',46),196,122,13,theme.text,390)
-    txt('SD'..tostring(active.card or 1)..'  ·  '..(
-      finished and tr('done') or external.error and tr('download_failed') or tr('progress')),
-      196,145,11,theme.muted,390)
-    local p=0
-    if finished then p=1
-    elseif (external.expected or 0)>0 then
-      p=math.max(0,math.min(1,(external.downloaded or 0)/external.expected)) end
-    R(196,169,402,12,theme.border,6)
-    if p>0 then R(196,169,402*p,12,theme.accent,6) end
-    txt((((external.expected or 0)>0 or finished) and
-      string.format('%d%%',math.floor(p*100+0.5))) or tr('download_progress'),
-      196,189,10,theme.muted,398)
+  local lang=settings.language
+  local entries=transferCenter.entries()
+  txt(transferCenter.label(lang,'ongoing')..': '..tostring(#transferCenter.active),183,96,12,theme.accent,239)
+  txt(transferCenter.label(lang,'recent')..': '..tostring(#entries-#transferCenter.active),429,96,10,theme.muted,187,true)
+  if #entries==0 then
+    panel(180,139,440,270)
+    txt(transferCenter.label(lang,'empty'),196,255,12,theme.muted,407,true)
   else
-    txt(tr('no_current_download'),196,143,12,theme.muted,399)
-  end
-  txt(tr('completed_downloads')..'  ('..tostring(#downloads)..')',181,232,13,theme.text,421)
-  if #downloads==0 then
-    panel(180,252,440,168)
-    txt(tr('history_empty'),196,321,12,theme.muted,403,true)
-  else
-    local total=#downloads
-    local maxScroll=math.max(0,total-4)
-    downloadScroll=math.max(0,math.min(downloadScroll,maxScroll))
-    for slot=1,math.min(4,total-downloadScroll) do
-      local item=downloads[total-downloadScroll-slot+1]
-      local y=252+(slot-1)*43
-      panel(180,y,440,39)
-      R(190,y+11,6,16,theme.green,3)
-      txt(ui.ellipsize(item.name or '?',42),204,y+5,11,theme.text,298)
-      txt((item.card or '?'):upper(),530,y+5,10,theme.accent,78)
-      txt(os.date('%d/%m',tonumber(item.time) or os.time()),204,y+23,9,theme.muted,162)
-      txt(tr('done'),519,y+23,9,theme.green,92)
+    for slot=1,math.min(6,#entries-transferCenter.scroll) do
+      local item=entries[transferCenter.scroll+slot]
+      local y=122+(slot-1)*49
+      panel(180,y,440,45)
+      local kind=transferCenter.label(lang,item.kind)
+      R(188,y+8,4,28,item.phase=='error' and theme.error or item.phase=='done' and theme.green or theme.accent,2)
+      txt(kind,200,y+5,10,theme.accent,57)
+      txt(ui.ellipsize(item.name,39),257,y+5,11,theme.text,320)
+      local phase=transferCenter.label(lang,item.phase)
+      local percent=item.total>0 and math.floor(math.min(100,item.done*100/item.total)+.5) or nil
+      local progress=percent and string.format('%d%%  %.1f / %.1f MB',percent,item.done/1048576,item.total/1048576)
+        or (item.done>0 and string.format('%.1f MB',item.done/1048576)) or item.detail
+      txt(phase,201,y+24,9,item.phase=='error' and theme.error or item.phase=='done' and theme.green or theme.muted,107)
+      txt(ui.ellipsize(progress,41),311,y+24,9,theme.muted,277)
+      if item.phase~='done' and item.phase~='error' then
+        R(201,y+40,394,2,theme.border,1)
+        if percent and percent>0 then R(201,y+40,394*percent/100,2,theme.accent,1) end
+      end
     end
-    if total>4 then
-      txt('▲▼ '..tostring(downloadScroll+1)..'-'..tostring(math.min(total,downloadScroll+4))..'/'..total,
-        477,425,9,theme.muted,134)
+    if #entries>6 then
+      txt(string.format('▲▼  %d-%d / %d',transferCenter.scroll+1,
+        math.min(#entries,transferCenter.scroll+6),#entries),450,424,9,theme.muted,162,true)
     end
   end
   footer()
@@ -1022,6 +1008,7 @@ function love.load()
   if os.getenv('R36S_STORE_OFFLINE_TEST')~='1' then storeUpdater.run('check') end
   external.init(HOME,STATE)
   reloadDownloads()
+  transferCenter.init(HOME)
   device.update(0,true)
   music.init()
   screen='startup'
@@ -1036,6 +1023,7 @@ function love.update(dt)
   biosManager.tick()
   biosUI.update()
   esUI.update(dt)
+  transferCenter.poll(external,biosUI,esUI,storeUpdater,downloads)
   if screen=='home' and storeUpdater.status.phase=='available' and not storeUpdater.offered then
     storeUpdater.offered=true
     storeUpdateModal=true
@@ -1367,8 +1355,8 @@ local function handleKey(key)
     elseif key=='b' then back() end
     return
   elseif screen=='downloads' or screen=='transferring' or screen=='success' then
-    if key=='up' then downloadScroll=math.max(0,downloadScroll-1)
-    elseif key=='down' then downloadScroll=math.min(math.max(0,#downloads-4),downloadScroll+1)
+    if key=='up' then transferCenter.move(-1)
+    elseif key=='down' then transferCenter.move(1)
     elseif key=='a' then navigate('history')
     elseif key=='b' then if screen=='downloads' then mainRoute('home') else mainRoute('downloads') end end
     return

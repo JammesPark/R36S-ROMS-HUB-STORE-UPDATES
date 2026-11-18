@@ -169,6 +169,7 @@ end
 function M.update()
   if B then B.update() end
 end
+function M.job() return B and B.job or nil end
 local function tabs()
   for i,name in ipairs(t('tabs')) do
     local x=180+(i-1)*111

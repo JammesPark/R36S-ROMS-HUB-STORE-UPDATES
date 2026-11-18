@@ -269,7 +269,7 @@ function U.searchIcon(x,y,c)
 end
 -- Icones oficiais Lucide obtidos da internet, convertidos em PNG para LÖVE.
 local navIcons={home='house',catalog='library-big',downloads='download',installed='hard-drive',
-  favorites='heart',bios='chip',es_themes='paint',settings='settings',about='info',exit='log-out'}
+  favorites='heart',bios='cpu',es_themes='palette',settings='settings',about='info',exit='log-out'}
 local categoryKinds={all='library-big',nes='gamepad',snes='gamepad-2',n64='gamepad-2',
   gb='tablet',gbc='tablet',gba='tablet',nds='tablet',n3ds='tablet',
   psx='disc-3',ps1='disc-3',ps2='disc',psp='tablet',ps3='disc',

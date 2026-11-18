@@ -60,9 +60,9 @@ with tempfile.TemporaryDirectory(prefix='roms-ota-test-') as tmp:
    assert game.getinfo(n).file_size>100
  assert updater.pending.exists()
  assert updater.rollback()
- assert (base/'VERSION').read_text().strip()=='0.4.1-beta'
+ assert (base/'VERSION').read_text().strip()==previous
  assert (base/'state/user_data.json').read_text()=='{"favorites":[3]}'
-print('PASS OTA: '+ ('0.4.1-beta' if expected==8 else '0.4.4-beta')+' -> '+version+'; SHA, manifest, app state, rollback')
+print('PASS OTA: '+previous+' -> '+version+'; SHA, manifest, app state, rollback')
 
 # Regressão: o motor novo permite o formato COMPLETO com 12 arquivos e
 # conserva rollback, mesmo que 0.4.4 seja distribuído na ponte de oito.
