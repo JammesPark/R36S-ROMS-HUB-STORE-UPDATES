@@ -13,8 +13,9 @@ assert 114+31*(len(pages)-1)+29 <= 424
 assert "local suboptions={'languages','themes','font_size','storage','network','updates','help'}" in s
 assert "if route=='es_themes' then esUI.enter() end" in s
 assert "elseif screen=='es_themes' then esThemesPage()" in s
-assert "bios='chip',es_themes='paint'" in ui
-assert "elseif shape=='chip'" in ui and "elseif shape=='paint'" in ui
+assert "bios='chip',es_themes='layers'" in ui
+assert "elseif shape=='chip'" in ui and "elseif shape=='layers'" in ui
+assert "local current=transferCenter.current()" in s, "Inicio must track BIOS/ROM/themes OTA"
 assert "local idx=math.floor((y-114)/31)+1" in s
 for lang in ('pt','en','es','ru'):
     assert re.search(r'\b'+lang+r'=\{[^\n]*es_themes=',i18n)
