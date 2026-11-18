@@ -339,12 +339,8 @@ local function fallback(c,legacy)
   if not S.quad then S.quad=g.newQuad(179,85,441,330,640,480) end
  end)
  if not prepared then
-  -- Drivers sem Canvas continuam com acesso aos motores pelas teclas.
-  print('[STUDIO] canvas indisponivel: '..tostring(prepErr):sub(1,140))
-  title(c,'SISTEMA / '..string.upper(c.screen or ''), 'Modo seguro')
-  tx('Interface clássica disponível em Configurações > Tema da interface.',
-    25,236,11,T.muted,588,true)
-  return
+  -- Sem Canvas, voltar ao Classico: nao esconder BIOS, Temas ou OTA.
+  error('Canvas indisponivel para Studio: '..tostring(prepErr):sub(1,140),0)
  end
  -- push/pop permanece equilibrado mesmo se o corpo legado falhar.
  g.push('all')
@@ -360,10 +356,7 @@ local function fallback(c,legacy)
   U.color({1,1,1})
   g.draw(S.canvas,S.quad,99,114)
  else
-  print('[STUDIO] erro no corpo: '..tostring(err):sub(1,180))
-  title(c,'SISTEMA / '..string.upper(c.screen or ''), 'Modo seguro')
-  tx('Pressione B para voltar. Seus dados não foram alterados.',
-     25,238,11,T.muted,588,true)
+  error('Erro no modulo original dentro do Studio: '..tostring(err):sub(1,180),0)
  end
  -- Mapeia a area antiga de clique para o conteudo centralizado.
  tap(99,114,441,330,'legacy',nil,{sourceX=179,sourceY=85})
