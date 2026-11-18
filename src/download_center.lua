@@ -137,6 +137,11 @@ function M.poll(rom,bios,es,updater,romhistory,now,queued)
     active[#active+1]=job('rom',n.name or 'ROM',rom.error and 'error' or rom.phase=='paused' and 'paused' or 'downloading',
       rom.downloaded,rom.expected,'rom-live-'..tostring(n.name),n.card==2 and 'SD2' or 'SD1')
   end
+  if rom and type(rom.lastDownload)=='table' then
+    local r=rom.lastDownload
+    add(job('rom',r.name,r.phase,r.done,r.total,
+      'rom-failed-'..tostring(r.t0 or 0)..'-'..tostring(r.name or ''),r.message))
+  end
   local b=bios and bios.job and bios.job() or nil
   if type(b)=='table' and b.op=='download' then
     local state=b.state=='running' and (b.phase or 'downloading') or b.state
