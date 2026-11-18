@@ -189,6 +189,7 @@ function ops.download()
   sh("mkdir -p " .. shq(job.pkg_dir))
   local dest = job.pkg_dir .. "/" .. job.name:gsub("/", "_")
   local part = dest .. ".part"
+  -- Nao reutilizar arquivos parciais de sessoes anteriores sem controle de origem.
   os.remove(part)
   local need = (job.size or 0) + 16 * 1024 * 1024
   local free = free_space(job.pkg_dir)
@@ -199,7 +200,28 @@ function ops.download()
   os.remove(rcf); os.remove(pidf)
   sh("( sh " .. shq(job.fetch_sh) .. " get " .. shq(job.url) .. " " .. shq(part) .. " " .. shq(pidf) .. " "
     .. shq(rcf) .. " 0 >/dev/null 2>&1 & )")
+  local paused=false
+  local function signal_child(sig)
+    local p=io.open(pidf,"r")
+    local pid=p and (p:read("*a") or ""):match("^%s*(%d+)%s*$")
+    if p then p:close() end
+    if pid then sh("kill -"..sig.." "..pid.." 2>/dev/null") end
+  end
   while true do
+    local control=IN:pop()
+    if control=="pause" and not paused then
+      signal_child("STOP");paused=true;OUT:push({t="paused"})
+    elseif control=="resume" and paused then
+      signal_child("CONT");paused=false;OUT:push({t="resumed"})
+    elseif control=="cancel" then
+      if paused then signal_child("CONT") end
+      signal_child("TERM")
+      love.timer.sleep(0.3)
+      os.remove(part);reg_remove(part)
+      OUT:push({t="cancelled"});error("__stop__",0)
+    end
+    if paused then love.timer.sleep(0.25)
+    else
     local rc = io.open(rcf, "r")
     if rc then
       local code = tonumber((rc:read("*a") or ""):match("%d+") or "1")
@@ -220,6 +242,7 @@ function ops.download()
     end
     progress(fsize(part) or 0, job.size)
     love.timer.sleep(0.25)
+    end
   end
   os.remove(rcf); os.remove(pidf)
   local got = fsize(part) or 0
