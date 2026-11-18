@@ -95,6 +95,7 @@ function M.request(task,args)
   args=args or {}; local cmd={task}
   for _,arg in ipairs(args) do cmd[#cmd+1]=arg end
   lastStatus='';os.remove(state..'/gamestore_status.json')
+  if task=='download' then os.remove(state..'/gamestore_control.json') end
   M.pending=task;M.phase='loading';M.message='Conectando...';M.error=false;M.maintenance=false
   if not command(cmd) then
     M.pending=nil;M.phase='error';M.message='Python 3 indisponível';M.error=true
@@ -145,6 +146,20 @@ function M.download(g,card,overwrite)
   end
   return ok
 end
+local function send_control(action)
+ if M.pending~='download' or not M.activeDownload then return false end
+ if action=='pause' and M.phase~='downloading' then return false end
+ if action=='resume' and M.phase~='paused' then return false end
+ if action=='cancel' and (M.phase=='done' or M.phase=='error') then return false end
+ local file=state..'/gamestore_control.json'
+ local f=io.open(file..'.tmp','wb')
+ if not f then return false end
+ f:write('{"action":"'..action..'"}');f:close()
+ return os.rename(file..'.tmp',file) and true or false
+end
+function M.pause() return send_control('pause') end
+function M.resume() return send_control('resume') end
+function M.cancel() return send_control('cancel') end
 function M.update()
   local raw=read(state..'/gamestore_status.json')
   if not raw or raw==lastStatus then return end
@@ -154,7 +169,10 @@ function M.update()
   M.phase=s.phase or 'idle';M.message=s.message or ''
   M.downloaded=tonumber(s.downloaded) or M.downloaded or 0
   M.expected=tonumber(s.expected) or 0
-  if M.phase=='error' then
+  if M.phase=='cancelled' then
+    M.pending=nil;M.activeDownload=nil
+    M.message=s.message or 'Download cancelado'
+  elseif M.phase=='error' then
     local task=M.pending
     M.error=true;M.pending=nil
     if task=='categories' or task=='games' or task=='search' then M.connected=false end
