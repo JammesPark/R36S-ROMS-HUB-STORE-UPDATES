@@ -1,5 +1,12 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.8-beta — 18/11/2026
+- Download de BIOS continua quando o usuario sai com B; X cancela explicitamente.
+- Corrigidos os icones da BIOS e dos Temas no menu principal.
+- Temas: lista so com nomes, sem miniaturas, e capa principal ampliada para 230x171.
+- Autor e compatibilidade removidos do painel de previa; botao Instalar acessivel pelo controle ou clique.
+- Cache das capas mantido, priorizando a previa do tema selecionado.
+
 ## 0.4.7-beta — 18/11/2026
 - Corrigida tela azul em Downloads (main.lua:567), causada por historico antigo sem done/total.
 - Normalizacao de registros antigos, calculo seguro da porcentagem e preservacao do historico.
