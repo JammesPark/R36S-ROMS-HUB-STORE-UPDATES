@@ -12,7 +12,7 @@ O código-fonte de cada versão distribuída acompanha os pacotes de Release.
 - O aplicativo consulta este canal automaticamente, mas só baixa/instala após confirmação do usuário.
 - Atualizações preservam as ROMs, o histórico de downloads, os favoritos e as configurações.
 
-**Atenção:** enquanto `update.json` indicar `awaiting_release`, nenhuma atualização está publicada ou pronta para instalar.
+**Primeira Release publicada:** [roms-v0.3.1-beta](https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/tag/roms-v0.3.1-beta). O manifesto [update.json](update.json) está ativo (`published`) e aponta para os arquivos verificados. O aplicativo instalado na mesma versão não precisará atualizar até a próxima Release.
 
 ## Licença e autoria
 
