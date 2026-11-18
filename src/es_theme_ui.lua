@@ -225,7 +225,7 @@ function M.draw(header,lang)
  header(t('subtitle'),t('title'))
  ui.panel(180,92,440,37)
  txt(t('screen')..':',193,102,11,theme.muted,90)
- txt('‹ '..selected_size()..' ›',290,100,14,theme.accent,158,true)
+ txt(selected_size(),290,100,14,theme.accent,158,true)
  txt(#M.items..' '..t('browse'),450,105,9,theme.muted,156)
  -- Apenas nomes na lista; capa grande somente do tema selecionado.
  local first=math.max(1,math.min(M.selected-2,math.max(1,#M.items-5)))
@@ -249,8 +249,19 @@ function M.draw(header,lang)
  else
   txt(t('no'),382,233,11,theme.muted,226,true)
  end
- txt(t('adjust')..'   '..t('refresh')..'   '..t('back'),183,416,10,theme.muted,435)
- if M.status~='' then txt(ell(M.status,56),184,429,9,M.busy and theme.accent or theme.low,432) end
+ -- Legendas reais do controle, distribuidas sem sobreposicoes na faixa inferior.
+ local hints={
+  pt={'Menos','Mais','Atualizar','Voltar'},
+  en={'Less','More','Refresh','Back'},
+  es={'Menos','Más','Actualizar','Volver'},
+  ru={'Меньше','Больше','Обновить','Назад'}
+ }
+ local labels=hints[M.lang] or hints.pt
+ ui.buttonHint(176,448,'L1',labels[1],52)
+ ui.buttonHint(289,448,'R1',labels[2],50)
+ ui.buttonHint(406,448,'Y',labels[3],77)
+ ui.buttonHint(532,448,'B',labels[4],46)
+ if M.status~='' then txt(ell(M.status,58),184,416,9,M.busy and theme.accent or theme.low,432) end
  if M.modal then
   rect(0,0,640,480,{0,0,0},0,nil,.79)
   ui.panel(125,142,390,205,true)
@@ -272,8 +283,8 @@ function M.key(key)
  if key=='b' then return false end
  if key=='up' then M.selected=math.max(1,M.selected-1)
  elseif key=='down' then M.selected=math.min(#M.items,M.selected+1)
- elseif key=='left' or key=='l' then M.change_size(-1)
- elseif key=='right' or key=='r' then M.change_size(1)
+ elseif key=='l' then M.change_size(-1)
+ elseif key=='r' then M.change_size(1)
  elseif key=='y' then
   M.previewAttempted={}
   spawn('refresh')
@@ -291,8 +302,11 @@ function M.mouse(x,y)
   if y>=270 then if x<325 then M.key('a') else M.key('b') end end
   return true
  end
- if y>=93 and y<=133 then
-  if x<291 then M.change_size(-1) elseif x<446 then M.change_size(1) end
+ -- A resolucao nao muda por clique nem por direcional: apenas L1/R1.
+ if y>=93 and y<=133 then return true end
+ if y>=440 and y<480 then
+  if x>=403 and x<525 then M.key('y');return true end
+  if x>=525 then return false end -- o chamador usa B para voltar
   return true
  end
  if x>=180 and x<=361 and y>=140 and y<=408 then
