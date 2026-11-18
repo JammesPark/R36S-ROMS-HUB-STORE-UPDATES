@@ -33,6 +33,12 @@ assert "cover(game,cx,y+4,coverW,coverH,idx)" in s
 assert "H.tileX={180,329,478}" in home_geometry
 assert "H.statsY=386" in home_geometry
 assert "featured='Em destaque'" in i18n
+assert "header(tr('welcome'),tr('home'))" in home
+assert "coverStretch(" not in s, "Cover preview should never stretch portrait ROM art"
+assert "ui.imageContain(img,x+2,y+2,w-4,h-4)" in s
+assert "local count=totalRoms()" in home
+assert "{tr('installed'),tostring(#downloads)}" in home
+assert "{tr('favorites'),tostring(#favorites)}" in home
 # Resolução física: todas as telas continuam usando coordenadas virtuais de 640x480.
 conf=(root/'src/conf.lua').read_text(encoding='utf8')
 display=(root/'src/display_resolution.lua').read_text(encoding='utf8')
