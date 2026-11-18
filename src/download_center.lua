@@ -97,16 +97,16 @@ local function job(kind,name,phase,done,total,id,detail)
 end
 local LABEL={
  pt={rom='ROM',bios='BIOS',theme='TEMA',update='LOJA',working='Em andamento',download='Baixando',source='Consultando',verify='Verificando',downloading='Baixando',
-   verifying='Verificando',extracting='Extraindo',done='Concluído',error='Falha',ready='Pronto para instalar',
+   verifying='Verificando',extracting='Extraindo',done='Concluído',error='Falha',ready='Pronto para instalar',queued='Na fila',paused='Pausado',cancelled='Cancelado',
    empty='Nenhuma transferência registrada',ongoing='EM ANDAMENTO',recent='ATIVIDADE RECENTE'},
  en={rom='ROM',bios='BIOS',theme='THEME',update='STORE',working='Working',download='Downloading',source='Checking',verify='Verifying',downloading='Downloading',
-   verifying='Verifying',extracting='Extracting',done='Completed',error='Failed',ready='Ready to install',
+   verifying='Verifying',extracting='Extracting',done='Completed',error='Failed',ready='Ready to install',queued='Queued',paused='Paused',cancelled='Cancelled',
    empty='No transfers recorded',ongoing='IN PROGRESS',recent='RECENT ACTIVITY'},
  es={rom='ROM',bios='BIOS',theme='TEMA',update='TIENDA',working='En curso',download='Descargando',source='Consultando',verify='Verificando',downloading='Descargando',
-   verifying='Verificando',extracting='Extrayendo',done='Completado',error='Fallido',ready='Listo para instalar',
+   verifying='Verificando',extracting='Extrayendo',done='Completado',error='Fallido',ready='Listo para instalar',queued='En cola',paused='Pausado',cancelled='Cancelado',
    empty='Sin transferencias',ongoing='EN CURSO',recent='ACTIVIDAD RECIENTE'},
  ru={rom='ROM',bios='BIOS',theme='ТЕМА',update='МАГАЗИН',working='В процессе',download='Загрузка',source='Проверка',verify='Проверка',downloading='Загрузка',
-   verifying='Проверка',extracting='Распаковка',done='Готово',error='Ошибка',ready='Готово к установке',
+   verifying='Проверка',extracting='Распаковка',done='Готово',error='Ошибка',ready='Готово к установке',queued='В очереди',paused='Пауза',cancelled='Отменено',
    empty='Нет загрузок',ongoing='ЗАГРУЗКИ',recent='ИСТОРИЯ'}
 }
 function M.label(lang,key)
@@ -129,12 +129,12 @@ function M.init(home)
     end
   end
 end
-function M.poll(rom,bios,es,updater,romhistory,now)
+function M.poll(rom,bios,es,updater,romhistory,now,queued)
   local active={}
   now=tonumber(now) or os.time()
   if rom and rom.activeDownload and (rom.pending=='download' or rom.phase=='error') then
     local n=rom.activeDownload
-    active[#active+1]=job('rom',n.name or 'ROM',rom.error and 'error' or 'downloading',
+    active[#active+1]=job('rom',n.name or 'ROM',rom.error and 'error' or rom.phase=='paused' and 'paused' or 'downloading',
       rom.downloaded,rom.expected,'rom-live-'..tostring(n.name),n.card==2 and 'SD2' or 'SD1')
   end
   local b=bios and bios.job and bios.job() or nil
@@ -152,7 +152,7 @@ function M.poll(rom,bios,es,updater,romhistory,now)
     local phase=t.phase or 'working'
     local entry=job('theme',t.name or 'Tema EmulationStation',phase,t.downloaded,t.total,
       'theme-'..tostring(t.job_id),t.message)
-    if phase=='working' or phase=='downloading' or phase=='extracting' then
+    if phase=='working' or phase=='downloading' or phase=='extracting' or phase=='paused' then
       active[#active+1]=entry
     elseif phase=='done' or phase=='error' then add(entry) end
   end
@@ -168,6 +168,8 @@ function M.poll(rom,bios,es,updater,romhistory,now)
     measure(entry,now,entry._speed)
     rows[#rows+1]=entry
   end
+  M.queued=type(queued)=='table' and queued or {}
+  for _,entry in ipairs(M.queued) do rows[#rows+1]=entry end
   for i=#M.history,1,-1 do rows[#rows+1]=M.history[i] end
   for i=#(romhistory or {}),1,-1 do
     local r=romhistory[i]
