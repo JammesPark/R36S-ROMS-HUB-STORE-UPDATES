@@ -37,13 +37,16 @@ for _,r in ipairs(imageRects) do
 end
 assert(m.mouse(415,373)==true,'botao instalar clicavel')
 assert(m.hasModal(),'clique abre confirmacao')
+local queue=require('transfer_queue')
 local original=os.execute
 local command
 os.execute=function(s) command=s;return true end
 m.key('a')
+assert(#queue.items==1 and queue.items[1].kind=='theme','a confirmação coloca o tema na fila')
+assert(m.queueInstall('test-theme','640x480'),'motor aceita instalar tema da fila')
 os.execute=original
 assert(command and command:find('es_theme_manager.py',1,true)
- and command:find('install',1,true) and command:find('test-theme',1,true),'instala tema selecionado')
+ and command:find('install',1,true) and command:find('test-theme',1,true),'fila aciona instalador real')
 m.busy=false
 assert(#buttonHints==32,'quatro botoes visuais em cada render dos quatro idiomas')
 for i=1,#buttonHints,4 do
