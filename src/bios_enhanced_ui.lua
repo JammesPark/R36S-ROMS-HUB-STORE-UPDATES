@@ -110,6 +110,7 @@ local function job_start(op,args)
     if op=='scan' and j.state=='done' then M.selected=1 end
   end)
   if not ok then M.message=tostring(err or t('retry')) end
+  return ok
 end
 local function request(label,handler)
   M.confirm={label=label,run=handler,yes=false}
@@ -170,6 +171,13 @@ function M.update()
   if B then B.update() end
 end
 function M.job() return B and B.job or nil end
+function M.queueDownload(name,size)
+ if not B or B.busy() then return false end
+ return job_start('download',{name=name,size=size})
+end
+function M.pause() return B and B.pause and B.pause() or false end
+function M.resume() return B and B.resume and B.resume() or false end
+function M.cancel() return B and B.cancel and B.cancel() or false end
 local function tabs()
   for i,name in ipairs(t('tabs')) do
     local x=180+(i-1)*111
@@ -334,7 +342,8 @@ local function package_action()
       M.message=t('source')..': '..t('run')
     else
       request(t('confirm_dl')..' '..tostring(info.name),function()
-        job_start('download',{name=info.name,size=info.size})
+        local ok,err=require('transfer_queue').enqueue('bios',{name=info.name,size=info.size})
+        M.message=ok and t('run') or tostring(err or t('retry'))
       end)
     end
   elseif M.pkgIndex==2 then
