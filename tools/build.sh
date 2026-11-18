@@ -18,6 +18,7 @@ if command -v lua5.3 >/dev/null; then
   lua5.3 tests/test_es_themes_ui.lua
   lua5.3 tests/test_transfer_center.lua
   lua5.3 tests/test_transfer_queue.lua
+  lua5.3 tests/test_display_resolution.lua
   lua5.3 tests/test_ota_bootstrap.lua
 fi
 python3 -m py_compile port/r36s-roms-store/bin/gamestore_source.py port/r36s-roms-store/bin/es_theme_manager.py src/bundled/es_theme_manager.py
