@@ -102,7 +102,15 @@ function V.pointer(x,y)
   return (x-V.x)/V.scale,(y-V.y)/V.scale
 end
 function V.beginFrame()
-  if not V.usingCanvas then return false end
+  if not V.usingCanvas then
+    -- Em drivers sem canvas, limpar as bordas alem da area virtual 640x480.
+    local g=love and love.graphics
+    if g and type(g.clear)=='function' then
+      local w,h=dimensions('getDimensions',g)
+      if w and (w>V.baseW or h>V.baseH) then g.clear(0,0,0,1) end
+    end
+    return false
+  end
   local g=love.graphics
   g.push('all')
   g.setCanvas(V.canvas)
