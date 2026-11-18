@@ -1,7 +1,14 @@
 {
   "app": "r36s-roms-store",
   "channel": "beta",
-  "status": "awaiting_release",
-  "version": null,
-  "notes": "O canal público está preparado. A primeira atualização será anunciada após publicação e verificação de uma Release com instalador, UPDATE e código-fonte."
+  "status": "published",
+  "version": "0.3.1-beta",
+  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.3.1-beta/R36S_ROMS_STORE_v0.3.1-beta_UPDATE.zip",
+  "sha256": "998d4b45cea5214bb00dfa910499d8a92ab5b12f71fbe9a7c7538a5b52e71026",
+  "size": 7022183,
+  "notes": "R36S ROMS STORE 0.3.1-beta\n\n- Atualizador migrado para o repositório público exclusivo `JammesPark/R36S-ROMS-STORE-UPDATES`, sem utilizar o canal do outro HUB.\n- Feed `update.json` próprio e publicação preparada para criar o feed na primeira Release.\n- Testes de isolamento do feed, versão, URL e ausência de dependências do repositório anterior.\n- A ativação pública depende da criação do novo repositório e do token restrito do Actions.\n\nSoftware GPL-3.0.\n",
+  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.3.1-beta/R36S_ROMS_STORE_v0.3.1-beta_TESTE.zip",
+  "installer_sha256": "bbb011ad8bf1c39efc438673e04f22625fc30385a6ab0ce81949773057b504d0",
+  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.3.1-beta/R36S_ROMS_STORE_v0.3.1-beta_FONTE.zip",
+  "source_sha256": "d27ff81e66dc8aa4fe42b12cc14bc2bc0e878820cda39f1a73641a8657300eb9"
 }
