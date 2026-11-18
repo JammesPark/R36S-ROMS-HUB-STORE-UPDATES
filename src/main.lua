@@ -13,6 +13,7 @@ local biosManager=require('bios_manager') -- legado: importacao local preservada
 local biosUI=require('bios_enhanced_ui') -- layout nativo + motor de BIOS GPL-3.0
 local esUI=require('es_theme_ui') -- temas ES: catálogo ThemeMaster/OGA e instalador isolado
 local transferCenter=require('download_center') -- ROM, BIOS, temas e atualização OTA
+local transferQueue=require('transfer_queue') -- fila persistente; motores mantem validacoes
 local HOME=os.getenv('R36S_STORE_HOME') or '/roms/ports/r36s-roms-store'
 local STATE=HOME..'/state'
 local mainPages={'home','catalog','bios','es_themes','downloads','installed','favorites','settings','about'}
@@ -551,7 +552,7 @@ local function transfersPage()
   local lang=settings.language
   local entries=transferCenter.entries()
   txt(transferCenter.label(lang,'ongoing')..': '..tostring(#transferCenter.active),183,96,12,theme.accent,239)
-  txt(transferCenter.label(lang,'recent')..': '..tostring(#entries-#transferCenter.active),429,96,10,theme.muted,187,true)
+  txt(transferCenter.label(lang,'queued')..': '..tostring(#transferQueue.items),429,96,10,theme.muted,187,true)
   if #entries==0 then
     panel(180,139,440,270)
     txt(transferCenter.label(lang,'empty'),196,255,12,theme.muted,407,true)
@@ -559,7 +560,7 @@ local function transfersPage()
     for slot=1,math.min(6,#entries-transferCenter.scroll) do
       local item=entries[transferCenter.scroll+slot]
       local y=122+(slot-1)*49
-      panel(180,y,440,45)
+      panel(180,y,440,45,transferCenter.selected==transferCenter.scroll+slot)
       local kind=transferCenter.label(lang,item.kind)
       R(188,y+8,4,28,item.phase=='error' and theme.error or item.phase=='done' and theme.green or theme.accent,2)
       txt(kind,200,y+5,10,theme.accent,57)
@@ -568,7 +569,14 @@ local function transfersPage()
       -- O historico antigo pode nao ter done/total; nao causar tela azul.
       local progress,percent=transferCenter.formatProgress(item)
       txt(phase,201,y+24,9,item.phase=='error' and theme.error or item.phase=='done' and theme.green or theme.muted,107)
-      txt(ui.ellipsize(progress,41),311,y+24,9,theme.muted,277)
+      local details=progress or ''
+      if item.phase=='download' or item.phase=='downloading' then
+        local rate=transferCenter.rateText(item)
+        local eta=transferCenter.etaText(item)
+        if rate~='—' then details=details..'  '..rate end
+        if eta~='—' then details=details..'  '..eta end
+      end
+      txt(ui.ellipsize(details,51),311,y+24,9,theme.muted,277)
       if item.phase~='done' and item.phase~='error' then
         R(201,y+40,394,2,theme.border,1)
         if percent and percent>0 then R(201,y+40,394*percent/100,2,theme.accent,1) end
@@ -579,7 +587,19 @@ local function transfersPage()
         math.min(#entries,transferCenter.scroll+6),#entries),450,424,9,theme.muted,162,true)
     end
   end
-  footer()
+  local selected=transferCenter.selectedItem()
+  local paused=selected and selected.phase=='paused'
+  local options={
+    pt={pause='Pausar',resume='Retomar',cancel='Cancelar',history='Histórico',back='Voltar'},
+    en={pause='Pause',resume='Resume',cancel='Cancel',history='History',back='Back'},
+    es={pause='Pausar',resume='Reanudar',cancel='Cancelar',history='Historial',back='Volver'},
+    ru={pause='Пауза',resume='Продолжить',cancel='Отмена',history='История',back='Назад'}
+  }
+  local label=options[lang] or options.pt
+  ui.buttonHint(177,448,'A',paused and label.resume or label.pause,69)
+  ui.buttonHint(286,448,'X',label.cancel,79)
+  ui.buttonHint(403,448,'Y',label.history,72)
+  ui.buttonHint(531,448,'B',label.back,51)
 end
 local function historyPage()
   header(tr('downloads'),tr('history'))
@@ -1079,6 +1099,7 @@ function love.load()
   external.init(HOME,STATE)
   reloadDownloads()
   transferCenter.init(HOME)
+  transferQueue.init(HOME)
   device.update(0,true)
   music.init()
   screen='startup'
@@ -1093,7 +1114,8 @@ function love.update(dt)
   biosManager.tick()
   biosUI.update()
   esUI.update(dt)
-  transferCenter.poll(external,biosUI,esUI,storeUpdater,downloads)
+  transferQueue.tick(external,biosUI,esUI)
+  transferCenter.poll(external,biosUI,esUI,storeUpdater,downloads,clock,transferQueue.visible())
   if screen=='home' and storeUpdater.status.phase=='available' and not storeUpdater.offered then
     storeUpdater.offered=true
     storeUpdateModal=true
@@ -1102,7 +1124,13 @@ function love.update(dt)
     awaitInspect=false
     if external.inspectResult then
       if external.inspectResult.exists then duplicateModal=true
-      elseif external.download(selectedGame,selectedCard,false) then navigate('transferring') end
+      else
+        local ok=transferQueue.enqueue('rom',{
+          game_path=selectedGame.game_path,category=selectedGame.category,
+          name=selectedGame.name or 'ROM',sha256=selectedGame.sha256 or '',
+          card=selectedCard,overwrite=false})
+        if ok then navigate('downloads') end
+      end
     else
       notice=external.message or tr('network_error');noticeTime=3
     end
@@ -1257,7 +1285,11 @@ local function handleGlobalModal(key)
   if duplicateModal then
     if key=='a' then
       duplicateModal=false
-      if external.download(selectedGame,selectedCard,true) then navigate('transferring')
+      local ok=transferQueue.enqueue('rom',{
+          game_path=selectedGame.game_path,category=selectedGame.category,
+          name=selectedGame.name or 'ROM',sha256=selectedGame.sha256 or '',
+          card=selectedCard,overwrite=true})
+        if ok then navigate('downloads') end
       else notice='Falha na sobrescrita';noticeTime=3 end
     elseif key=='b' then duplicateModal=false end
     return true
@@ -1444,8 +1476,19 @@ local function handleKey(key)
   elseif screen=='downloads' or screen=='transferring' or screen=='success' then
     if key=='up' then transferCenter.move(-1)
     elseif key=='down' then transferCenter.move(1)
-    elseif key=='a' then navigate('history')
-    elseif key=='b' then if screen=='downloads' then mainRoute('home') else mainRoute('downloads') end end
+    elseif key=='y' then navigate('history')
+    elseif key=='a' or key=='x' then
+      local item=transferCenter.selectedItem()
+      if item and (item.queued or transferCenter.selected<=#transferCenter.active) then
+        local action=key=='x' and 'cancel' or item.phase=='paused' and 'resume' or 'pause'
+        if not transferQueue.handle(item,action,external,biosUI,esUI) then
+          notice=transferCenter.label(settings.language,'invalid')
+          noticeTime=2
+        end
+      end
+    elseif key=='b' then
+      if screen=='downloads' then mainRoute('home') else mainRoute('downloads') end
+    end
     return
   elseif screen=='history' then
     if key=='up' then historyIndex=math.max(1,historyIndex-1)
