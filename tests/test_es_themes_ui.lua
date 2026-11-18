@@ -2,7 +2,10 @@
 package.path = './src/?.lua;./src/?/init.lua;'..package.path
 local mockui={}
 function mockui.text() end
-function mockui.rect() end
+local imageRects={}
+function mockui.rect(x,y,w,h)
+ if x==380 and y==173 then imageRects[#imageRects+1]={x=x,y=y,w=w,h=h} end
+end
 function mockui.panel() end
 function mockui.ellipsize(s,n) return tostring(s):sub(1,n) end
 package.preload.ui=function() return mockui end
@@ -24,7 +27,21 @@ for _,language in ipairs({'pt','en','es','ru'}) do
   m.key('b')
   assert(not m.hasModal())
 end
+assert(#imageRects==8,'uma capa por desenho, sem miniaturas')
+for _,r in ipairs(imageRects) do
+ assert(r.w==230 and r.h==171,'capa ampliada')
+end
+assert(m.mouse(415,373)==true,'botao instalar clicavel')
+assert(m.hasModal(),'clique abre confirmacao')
+local original=os.execute
+local command
+os.execute=function(s) command=s;return true end
+m.key('a')
+os.execute=original
+assert(command and command:find('es_theme_manager.py',1,true)
+ and command:find('install',1,true) and command:find('test-theme',1,true),'instala tema selecionado')
+m.busy=false
 m.change_size(1)
 assert(m.size()=='854x480')
 assert(m.key('b')==false)
-print('PASS ES themes UI simulated, 4 languages, 640x480, modal and resolution')
+print('PASS themes: capa ampliada, sem miniaturas e Instalar funcional')
