@@ -155,9 +155,9 @@ local function read_status()
  M.seenRaw=raw
  local ok,data=pcall(json.decode,raw)
  if not ok or type(data)~='table' then return end
- if data.phase=='working' or data.phase=='downloading' or data.phase=='extracting' then
+ if data.phase=='working' or data.phase=='downloading' or data.phase=='extracting' or data.phase=='paused' then
   M.busy=true
- elseif data.phase=='done' or data.phase=='error' then M.busy=false end
+ elseif data.phase=='done' or data.phase=='error' or data.phase=='cancelled' then M.busy=false end
  M.status=tostring(data.message or '')
  if data.task=='install' then M.transferState=data end
  if type(data.installed)=='table' then M.installed=data.installed end
@@ -170,6 +170,8 @@ end
 local function spawn(op,id,size)
  if M.busy then return false end
  M.busy=true;M.seenRaw=nil;M.status=t('working')
+ os.remove(M.home..'/state/es_theme_status.json')
+ if op=='install' then os.remove(M.home..'/state/es_theme_control.json');M.transferState=nil end
  local base=M.home..'/bin/es_theme_manager.py'
  local command='python3 '..shq(base)..' '..op
  if id then command=command..' '..shq(id)..' '..shq(size or selected_size()) end
@@ -203,6 +205,25 @@ function M.init(home)
   end
  end
  recalc()
+end
+local function send_control(action)
+ if not M.home or not M.busy or not M.transferState or M.transferState.task~='install' then return false end
+ local phase=M.transferState.phase
+ if action=='pause' and phase~='downloading' then return false end
+ if action=='resume' and phase~='paused' then return false end
+ if action=='cancel' and phase~='downloading' and phase~='paused' then return false end
+ local file=M.home..'/state/es_theme_control.json'
+ local f=io.open(file..'.tmp','wb')
+ if not f then return false end
+ f:write('{"action":"'..action..'"}');f:close()
+ return os.rename(file..'.tmp',file) and true or false
+end
+function M.pause() return send_control('pause') end
+function M.resume() return send_control('resume') end
+function M.cancel() return send_control('cancel') end
+function M.queueInstall(id,size)
+ if M.busy then return false end
+ return spawn('install',id,size)
 end
 function M.enter()
  if not M.home then return end
@@ -276,7 +297,9 @@ function M.key(key)
  if M.modal then
   if key=='a' then
    local m=M.modal;M.modal=nil
-   if not spawn('install',m.id,selected_size()) then M.status=t('unknown') end
+   local ok,err=require('transfer_queue').enqueue('theme',
+       {id=m.id,name=m.name,resolution=selected_size()})
+   M.status=ok and t('working') or tostring(err or t('unknown'))
   elseif key=='b' or key=='x' then M.modal=nil end
   return true
  end
