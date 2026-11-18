@@ -1296,6 +1296,15 @@ end
 function love.resize(w,h)
   display.resize(w,h)
 end
+local function changeLayout()
+  settings.layout=(layoutIndex==2) and 'studio' or 'classic'
+  theme.setLayout(settings.layout)
+  saveSettings()
+  notice=tr('layout_choice')..': '..tr(settings.layout=='studio' and 'layout_studio' or 'layout_classic')
+  noticeTime=2.5
+  studioNavFocus=false
+  back()
+end
 local function changeTheme()
   local o=theme.options[themeIndex];if not o then return end
   settings.theme=o.key;theme.set(o.key);saveSettings()
@@ -1386,6 +1395,21 @@ local function handleGlobalModal(key)
 end
 -- Entrada da tela inicial isolada para caber no limite de upvalues do LuaJIT.
 local function handleHomeInput(key)
+    if settings.layout=='studio' and focus=='sidebar' then
+      -- O menu do Studio e horizontal. A navega; baixo entra no conteudo.
+      if key=='left' then menuIndex=math.max(1,menuIndex-1)
+      elseif key=='right' then menuIndex=math.min(#menuPages,menuIndex+1)
+      elseif key=='up' then menuIndex=math.max(1,menuIndex-1)
+      elseif key=='down' then focus='content';homeFocus='explore'
+      elseif key=='a' then
+        local route=menuPages[menuIndex]
+        if route=='exit' then navigate('exit_confirm')
+        elseif route=='home' then focus='content';homeFocus='explore'
+        elseif route then mainRoute(route) end
+      elseif key=='b' then navigate('exit_confirm')
+      elseif key=='y' then external.refresh() end
+      return
+    end
     -- B na tela inicial sempre abre a confirmação de saída.
     if key=='b' then navigate('exit_confirm');return end
     -- D-pad escolhe item e região; somente A abre o item em foco.
@@ -1436,6 +1460,27 @@ local function handleHomeInput(key)
 end
 local function handleKey(key)
   if handleGlobalModal(key) then return end
+  if settings.layout=='studio' and key=='select' then
+    studioNavFocus=not studioNavFocus
+    if studioNavFocus then
+      for i,route in ipairs(menuPages) do
+        if route==screen then menuIndex=i;break end
+      end
+    end
+    return
+  end
+  if settings.layout=='studio' and studioNavFocus then
+    if key=='left' or key=='up' then menuIndex=math.max(1,menuIndex-1)
+    elseif key=='right' then menuIndex=math.min(#menuPages,menuIndex+1)
+    elseif key=='down' or key=='b' then studioNavFocus=false
+    elseif key=='a' then
+      local route=menuPages[menuIndex]
+      studioNavFocus=false
+      if route=='exit' then navigate('exit_confirm')
+      elseif route then mainRoute(route) end
+    end
+    return
+  end
   if screen=='startup' then return end
   if screen=='first_language' then
     if key=='up' then languageIndex=math.max(1,languageIndex-1)
@@ -1625,6 +1670,12 @@ local function handleKey(key)
     elseif key=='a' then changeFontSize()
     elseif key=='b' then back() end
     return
+  elseif screen=='layout_choice' then
+    if key=='left' or key=='up' then layoutIndex=1
+    elseif key=='right' or key=='down' then layoutIndex=2
+    elseif key=='a' then changeLayout()
+    elseif key=='b' then back() end
+    return
   elseif screen=='themes' then
     if key=='left' then themeIndex=math.max(1,themeIndex-1)
     elseif key=='right' then themeIndex=math.min(#theme.options,themeIndex+1)
@@ -1703,13 +1754,13 @@ function love.keypressed(key,scancode,isrepeat)
   -- Teclado para testes no PC. No console, SDL2 envia gamepadpressed.
   local keys={['return']='a',kpenter='a',escape='b',backspace='b',
     up='up',down='down',left='left',right='right',
-    pageup='l',pagedown='r',f5='y',y='y',x='x',tab='start'}
+    pageup='l',pagedown='r',f5='y',y='y',x='x',tab=settings.layout=='studio' and 'select' or 'start'}
   handleKey(keys[key] or key)
 end
 function love.gamepadpressed(_,button)
   -- Mapeamento SDL2 unico: direcional, face buttons, L1/R1 e START.
   local keys={a='a',b='b',x='x',y='y',dpup='up',dpdown='down',dpleft='left',dpright='right',
-    leftshoulder='l',rightshoulder='r',start='start'}
+    leftshoulder='l',rightshoulder='r',start='start',back='select'}
   if keys[button] then handleKey(keys[button]) end
 end
 function love.textinput(t)
