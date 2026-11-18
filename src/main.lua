@@ -1493,7 +1493,7 @@ local function handleKey(key)
       if item and (item.queued or transferCenter.selected<=#transferCenter.active) then
         local action=key=='x' and 'cancel' or item.phase=='paused' and 'resume' or 'pause'
         if not transferQueue.handle(item,action,external,biosUI,esUI) then
-          notice=transferCenter.label(settings.language,'invalid')
+          notice=transferCenter.label(settings.language,'unsupported')
           noticeTime=2
         end
       end
