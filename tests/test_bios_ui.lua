@@ -50,4 +50,17 @@ for _,lang in ipairs({'pt','en','es','ru'}) do
  m.key('b')
 end
 assert(#calls>=1)
-print('PASS bios UI simulation 4 idiomas, abas, instalacao/restauracao e modais')
+-- O download da BIOS nao deve ser cancelado por navegacao.
+local cancelled,updates=0,0
+mock.job={op='download',state='running',phase='download',done=55,total=100}
+mock.busy=function() return mock.job and mock.job.state=='running' end
+mock.cancel=function() cancelled=cancelled+1 end
+mock.update=function() updates=updates+1 end
+assert(m.key('b')==false,'B deve sair mantendo o download')
+assert(cancelled==0,'navegacao nao pode cancelar')
+m.update()
+assert(updates==1,'atualizacao em segundo plano deve continuar')
+assert(m.key('x')==true and cancelled==1,'X cancela explicitamente')
+assert(m.mouse(260,455)==false,'B na tela deixa o download ativo')
+assert(cancelled==1)
+print('PASS BIOS: download em segundo plano e cancelamento somente explicito')
