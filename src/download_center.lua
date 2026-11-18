@@ -98,16 +98,16 @@ end
 local LABEL={
  pt={rom='ROM',bios='BIOS',theme='TEMA',update='LOJA',working='Em andamento',download='Baixando',source='Consultando',verify='Verificando',downloading='Baixando',
    verifying='Verificando',extracting='Extraindo',done='Concluído',error='Falha',ready='Pronto para instalar',queued='Na fila',paused='Pausado',cancelled='Cancelado',
-   empty='Nenhuma transferência registrada',ongoing='EM ANDAMENTO',recent='ATIVIDADE RECENTE'},
+   empty='Nenhuma transferência registrada',unsupported='Controle indisponível nesta transferência',ongoing='EM ANDAMENTO',recent='ATIVIDADE RECENTE'},
  en={rom='ROM',bios='BIOS',theme='THEME',update='STORE',working='Working',download='Downloading',source='Checking',verify='Verifying',downloading='Downloading',
    verifying='Verifying',extracting='Extracting',done='Completed',error='Failed',ready='Ready to install',queued='Queued',paused='Paused',cancelled='Cancelled',
-   empty='No transfers recorded',ongoing='IN PROGRESS',recent='RECENT ACTIVITY'},
+   empty='No transfers recorded',unsupported='Action unavailable for this transfer',ongoing='IN PROGRESS',recent='RECENT ACTIVITY'},
  es={rom='ROM',bios='BIOS',theme='TEMA',update='TIENDA',working='En curso',download='Descargando',source='Consultando',verify='Verificando',downloading='Descargando',
    verifying='Verificando',extracting='Extrayendo',done='Completado',error='Fallido',ready='Listo para instalar',queued='En cola',paused='Pausado',cancelled='Cancelado',
-   empty='Sin transferencias',ongoing='EN CURSO',recent='ACTIVIDAD RECIENTE'},
+   empty='Sin transferencias',unsupported='Acción no disponible',ongoing='EN CURSO',recent='ACTIVIDAD RECIENTE'},
  ru={rom='ROM',bios='BIOS',theme='ТЕМА',update='МАГАЗИН',working='В процессе',download='Загрузка',source='Проверка',verify='Проверка',downloading='Загрузка',
    verifying='Проверка',extracting='Распаковка',done='Готово',error='Ошибка',ready='Готово к установке',queued='В очереди',paused='Пауза',cancelled='Отменено',
-   empty='Нет загрузок',ongoing='ЗАГРУЗКИ',recent='ИСТОРИЯ'}
+   empty='Нет загрузок',unsupported='Действие недоступно',ongoing='ЗАГРУЗКИ',recent='ИСТОРИЯ'}
 }
 function M.label(lang,key)
   return (LABEL[lang] or LABEL.pt)[key] or LABEL.pt[key] or key
@@ -130,6 +130,8 @@ function M.init(home)
   end
 end
 function M.poll(rom,bios,es,updater,romhistory,now,queued)
+  local currentSelection=M.rows[M.selected]
+  local selectedId=currentSelection and currentSelection.id
   local active={}
   now=tonumber(now) or os.time()
   if rom and rom.activeDownload and (rom.pending=='download' or rom.phase=='error') then
@@ -182,6 +184,13 @@ function M.poll(rom,bios,es,updater,romhistory,now,queued)
       tostring(r.card or ''):upper())
   end
   M.active=active;M.rows=rows
+  if selectedId then
+    local found=false
+    for i,item in ipairs(rows) do
+      if item.id==selectedId then M.selected=i;found=true;break end
+    end
+    if not found then M.selected=math.max(1,math.min(M.selected,#rows)) end
+  end
   M.selected=math.max(1,math.min(M.selected,math.max(1,#rows)))
   M.scroll=math.max(0,math.min(M.scroll,math.max(0,#rows-6)))
 end
