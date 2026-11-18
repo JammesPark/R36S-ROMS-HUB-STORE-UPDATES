@@ -61,9 +61,10 @@ local function fallbackCanvas()
   if win and type(win.setMode)=='function' then
     pcall(win.setMode,640,480,{fullscreen=false,resizable=false,vsync=1})
   end
-  local w,h=dimensions('getDimensions',love and love.graphics)
-  V.apply(w or 640,h or 480)
-  V.source=V.source..' (render direto sem canvas)'
+  -- Sem canvas, as telas sao desenhadas diretamente em coordenadas 640x480.
+  -- Mesmo que SDL2 nao consiga trocar o modo, o mouse continua correto.
+  V.apply(640,480)
+  V.source=V.source..' (render direto 640x480 sem canvas)'
   V.canvas=nil;V.usingCanvas=false
 end
 function V.init()
