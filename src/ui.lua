@@ -269,7 +269,7 @@ function U.searchIcon(x,y,c)
 end
 -- Icones oficiais Lucide obtidos da internet, convertidos em PNG para LÖVE.
 local navIcons={home='house',catalog='library-big',downloads='download',installed='hard-drive',
-  favorites='heart',bios='chip',es_themes='paint',settings='settings',about='info',exit='log-out'}
+  favorites='heart',bios='chip',es_themes='layers',settings='settings',about='info',exit='log-out'}
 local categoryKinds={all='library-big',nes='gamepad',snes='gamepad-2',n64='gamepad-2',
   gb='tablet',gbc='tablet',gba='tablet',nds='tablet',n3ds='tablet',
   psx='disc-3',ps1='disc-3',ps2='disc',psp='tablet',ps3='disc',
@@ -360,12 +360,11 @@ function U.menuIcon(kind,x,y,c)
     line(18,9,22,9)
     line(18,15,22,15)
     rect(10,10,4,4)
-  elseif shape=='paint' then
-    -- Loja de Temas: paleta de tinta, distinta do ícone de configurações.
-    circ(12,12,9)
-    circ(8,7,1.2);circ(15,7,1.2);circ(6,13,1.2)
-    circ(17,14,1.2)
-    line(12,18,15,21,19,20)
+  elseif shape=='layers' then
+    -- Temas: tres camadas simetricas, legiveis a 18x18 em 640x480.
+    line(12,3,22,9,12,15,2,9,12,3)
+    line(2,13,12,19,22,13)
+    line(2,17,12,23,22,17)
   elseif shape=='settings' then
     -- Configurações: engrenagem com centro e oito dentes.
     circ(12,12,7)
