@@ -29,6 +29,11 @@ HOME = os.environ.get("R36S_STORE_HOME", "/roms/ports/r36s-roms-store")
 STATE = os.path.join(HOME, "state")
 STATUS = os.path.join(STATE, "gamestore_status.json")
 LOCK = os.path.join(STATE, "gamestore.lock")
+CONTROL = os.path.join(STATE, "gamestore_control.json")
+
+
+class TransferCancelled(Exception):
+    """Only the active ROM download is cancelled; no completed ROM is changed."""
 
 def save_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -282,6 +287,29 @@ def remove_rom(url, category, sd, filename):
     status("done", "ROM removida do cartão e do histórico", task="remove", card=sd)
 
 
+def check_transfer_control(name, done, expected):
+    """Cooperative pause: retain the open partial file and its SHA-256 state."""
+    paused = False
+    while True:
+        try:
+            with open(CONTROL, encoding="utf-8") as f:
+                command = json.load(f).get("action")
+        except (OSError, ValueError, AttributeError):
+            command = None
+        if command == "cancel":
+            raise TransferCancelled("Cancelado pelo usuário")
+        if command != "pause":
+            if paused:
+                status("downloading", "Download retomado", task="download",
+                       downloaded=done, expected=expected)
+            return
+        if not paused:
+            status("paused", f"Download pausado: {name[:60]}", task="download",
+                   downloaded=done, expected=expected)
+            paused = True
+        time.sleep(0.2)
+
+
 def download(url, category, sd, name, checksum="", overwrite="0"):
     url = safe_url(url, allow_http=True)
     folder, dest, basename, final = rom_destination(url, category, sd)
@@ -310,6 +338,7 @@ def download(url, category, sd, name, checksum="", overwrite="0"):
                 raise ValueError("Arquivo excede o limite")
             with open(temp, "xb") as out:
                 while True:
+                    check_transfer_control(name, count, expected)
                     block = response.read(256 * 1024)
                     if not block:
                         break
@@ -423,6 +452,9 @@ def run(args):
 if __name__ == "__main__":
     try:
         run(sys.argv[1:])
+    except TransferCancelled as exc:
+        status("cancelled", str(exc)[:220], task="download")
+        sys.exit(0)
     except Exception as exc:
         status("error", str(exc)[:220], task=sys.argv[1] if len(sys.argv)>1 else "")
         sys.exit(1)
