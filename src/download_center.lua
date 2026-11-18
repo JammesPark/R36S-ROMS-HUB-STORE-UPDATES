@@ -133,6 +133,14 @@ function M.poll(rom,bios,es,updater,romhistory)
   M.active=active;M.rows=rows
   M.scroll=math.max(0,math.min(M.scroll,math.max(0,#rows-6)))
 end
+-- Uma mesma fonte alimenta Downloads e o painel da tela Início.
+-- Prioriza a primeira transferência em curso, ignorando falhas concluídas.
+function M.current()
+ for _,item in ipairs(M.active) do
+  if item.phase~='error' and item.phase~='done' and item.phase~='cancelled' then return item end
+ end
+ return nil
+end
 function M.count() return #M.rows end
 function M.maxScroll() return math.max(0,#M.rows-6) end
 function M.move(delta) M.scroll=math.max(0,math.min(M.maxScroll(),M.scroll+delta)) end
