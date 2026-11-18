@@ -1207,7 +1207,7 @@ function love.update(dt)
   if external.error and screen=='transferring' then screen='downloads' end
   lastStatus=external.phase
 end
-local function drawVirtual()
+local function drawClassicVirtual()
   if screen=='startup' then splashPage();ui.statusBar(device.get());return end
   if screen=='first_language' then firstLanguagePage();return end
   if screen=='disclaimer' then disclaimerPage();return end
@@ -1226,6 +1226,7 @@ local function drawVirtual()
   elseif screen=='languages' then languagesPage()
   elseif screen=='font_size' then fontSizePage()
   elseif screen=='themes' then themesPage()
+  elseif screen=='layout_choice' then layoutChoicePage()
   elseif screen=='storage' then storagePage()
   elseif screen=='network' then networkPage()
   elseif screen=='bios' then biosPage()
@@ -1243,6 +1244,43 @@ local function drawVirtual()
     txt(ui.ellipsize(notice,60),190,409,11,theme.text,420)
   end
   ui.statusBar(device.get())
+  if screen=='exit_confirm' then exitDialog() end
+  if qrModal then qrPage() end
+  if duplicateModal then overwriteDialog() end
+  if pendingDelete then deleteDialog() end
+  if storeUpdateModal then storeUpdateOfferPage() end
+  if updateConfirm then storeUpdateConfirmPage() end
+end
+local function studioContext()
+  local current=transferCenter.current()
+  local colorName=''
+  for _,opt in ipairs(theme.options) do
+    if opt.key==settings.theme then colorName=tr(opt.name);break end
+  end
+  local languageName=''
+  for _,lang in ipairs(i18n.languages) do
+    if lang.code==settings.language then languageName=lang.name;break end
+  end
+  return {
+    screen=screen,layout=settings.layout,lang=settings.language,color=settings.theme,
+    colorName=colorName,languageName=languageName,font_size=settings.font_size,
+    tr=tr,nav=menuPages,navIndex=menuIndex,navFocus=studioNavFocus,
+    homeFocus=homeFocus,homeStatIndex=homeOverviewIndex,featuredIndex=homeSlideIndex,
+    gameIndex=gameIndex,searchIndex=searchResultIndex,category=external.category,
+    games=external.games,results=external.searchResults,categories=external.categories,
+    selectedGame=selectedGame,selectedCard=selectedCard,cover=cover,
+    platformTitle=platformTitle,gameLocation=sdLocation,transferSelected=transferCenter.selected,
+    transfers=transferCenter.entries(),current=current,rate=transferCenter.rateText,
+    eta=transferCenter.etaText,totalRoms=totalRoms(),settingsIndex=settingsIndex,
+    downloads=downloads,favorites=favorites,installIndex=installIndex,favoriteIndex=favIndex,
+    storage=storageInfo,networkState=external.networkState(),device=device.get(),
+    version=appVersion(),notice=notice,noticeTime=noticeTime
+  }
+end
+local function drawVirtual()
+  if settings.layout~='studio' then return drawClassicVirtual() end
+  studioUI.draw(studioContext(),drawClassicVirtual)
+  -- Modais mantem exatamente as confirmacoes seguras dos motores existentes.
   if screen=='exit_confirm' then exitDialog() end
   if qrModal then qrPage() end
   if duplicateModal then overwriteDialog() end
