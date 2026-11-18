@@ -19,6 +19,26 @@ jobs:
           fetch-depth: 0
       - name: Instalar ferramentas de build
         run: sudo apt-get update -q && sudo apt-get install -y luajit lua5.3 zip unzip
+      - name: Obter baseline oficial para gerar pacote incremental
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          FEED="$(gh api "repos/$GITHUB_REPOSITORY/contents/update.json" -H 'Accept: application/vnd.github.raw+json')"
+          BASE_VER="$(printf '%s' "$FEED" | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d.get("status")=="published";print(d["version"])')"
+          BASE_SHA="$(printf '%s' "$FEED" | python3 -c 'import json,sys;print(json.load(sys.stdin)["installer_sha256"])')"
+          [[ "$BASE_SHA" =~ ^[a-f0-9]{64}$ ]] || exit 1
+          mkdir -p /tmp/roms-ota-baseline
+          gh release download "roms-v$BASE_VER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "R36S_ROMS_STORE_v${BASE_VER}_TESTE.zip" \
+            --dir /tmp/roms-ota-baseline
+          BASE_ZIP="/tmp/roms-ota-baseline/R36S_ROMS_STORE_v${BASE_VER}_TESTE.zip"
+          printf '%s  %s\n' "$BASE_SHA" "$BASE_ZIP" | sha256sum -c -
+          echo "ROMS_OTA_BASELINE_ZIP=$BASE_ZIP" >> "$GITHUB_ENV"
+          echo "ROMS_OTA_BASELINE_VERSION=$BASE_VER" >> "$GITHUB_ENV"
+          echo "ROMS_OTA_BASELINE_SHA256=$BASE_SHA" >> "$GITHUB_ENV"
       - name: Testar e construir os tres ZIPs
         env:
           CI: 'true'
@@ -43,7 +63,7 @@ jobs:
           assert parse(version)>parse(current['version']),'Downgrade/duplicated version'
           tag='roms-v'+version
           assert subprocess.run(['gh','release','view',tag,'--repo',repo],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode!=0,'Release already exists'
-          for ext in ['TESTE','UPDATE','FONTE']:
+          for ext in ['TESTE','UPDATE','UPDATE_DELTA','FONTE']:
               assert (Path('build')/f'R36S_ROMS_STORE_v{version}_{ext}.zip').is_file()
           PY
       - name: Criar tag e Release apos testes
@@ -65,6 +85,7 @@ jobs:
           gh release create "$TAG" \
             "build/R36S_ROMS_STORE_v${VER}_TESTE.zip" \
             "build/R36S_ROMS_STORE_v${VER}_UPDATE.zip" \
+            "build/R36S_ROMS_STORE_v${VER}_UPDATE_DELTA.zip" \
             "build/R36S_ROMS_STORE_v${VER}_FONTE.zip" \
             --repo "$GITHUB_REPOSITORY" --title "R36S ROMS STORE $VER" \
             --notes-file CHANGELOG.md --prerelease --latest=false
@@ -81,7 +102,7 @@ jobs:
           import hashlib,json
           from pathlib import Path
           info=json.loads(Path('build/update.json').read_text())
-          for suffix,key in [('TESTE','installer_sha256'),('UPDATE','sha256'),('FONTE','source_sha256')]:
+          for suffix,key in [('TESTE','installer_sha256'),('UPDATE','sha256'),('UPDATE_DELTA','incremental_sha256'),('FONTE','source_sha256')]:
               p=Path('verify')/f'R36S_ROMS_STORE_v{info["version"]}_{suffix}.zip'
               assert hashlib.sha256(p.read_bytes()).hexdigest()==info[key],p
           PY

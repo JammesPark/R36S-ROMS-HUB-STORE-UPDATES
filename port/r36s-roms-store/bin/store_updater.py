@@ -85,6 +85,18 @@ def load_json(path):
         return None
 
 
+def expected_delta_url(version):
+    return expected_url(version).replace('_UPDATE.zip', '_UPDATE_DELTA.zip')
+
+
+def valid_package(info, prefix, version, url_expected):
+    url = info.get(prefix + "url")
+    sha = info.get(prefix + "sha256")
+    size = info.get(prefix + "size")
+    return (url == url_expected and isinstance(sha, str) and bool(SHA.fullmatch(sha))
+            and type(size) is int and 0 < size <= MAX_DOWNLOAD)
+
+
 def expected_url(version):
     filename = "R36S_ROMS_STORE_v" + version + "_UPDATE.zip"
     return "https://github.com/" + PUBLIC_REPO + "/releases/download/roms-v" + version + "/" + filename
@@ -108,10 +120,20 @@ def validate_feed(info, installed):
         raise ValueError("Tamanho de pacote inválido")
     if version_key(version) <= version_key(installed):
         return None
-    return {k: info.get(k) for k in ("version", "url", "sha256", "size", "notes")}
+    result = {k: info.get(k) for k in ("version", "url", "sha256", "size", "notes")}
+    result["kind"] = "full"
+    # O URL legado sempre aponta ao UPDATE completo. Delta é opcional e apenas
+    # para uma versão-base exata. Clientes mais antigos ignoram esses campos.
+    if valid_package(info, "incremental_", version, expected_delta_url(version)):
+        base_min = info.get("incremental_min_version")
+        base_max = info.get("incremental_max_version")
+        if base_min == base_max == installed and version_key(version) > version_key(installed):
+            result.update(url=info["incremental_url"], sha256=info["incremental_sha256"],
+                          size=info["incremental_size"], kind="incremental")
+    return result
 
 
-def safe_zip(archive, version):
+def safe_zip(archive, version, installed=None):
     """Confere todo arquivo, manifesto, caminhos fixos, tamanho e hash."""
     with zipfile.ZipFile(archive) as z:
         members = z.infolist()
@@ -119,12 +141,28 @@ def safe_zip(archive, version):
         if len(names) != len(set(names)):
             raise ValueError("ZIP tem entradas duplicadas")
         paths = frozenset(names) - {"update_manifest.json"}
-        if paths not in SUPPORTED_PACKAGES:
-            raise ValueError("ZIP contém arquivos inesperados ou ausentes")
+        manifest = json.loads(z.read("update_manifest.json"))
+        kind = manifest.get("type", "full") if isinstance(manifest, dict) else None
+        if kind == "full":
+            if paths not in SUPPORTED_PACKAGES:
+                raise ValueError("ZIP completo contém arquivos inesperados ou ausentes")
+        elif kind == "incremental":
+            must = frozenset((APP_ID + "/VERSION", APP_ID + "/game.love"))
+            if not (must <= paths <= ALLOWED) or len(paths) > len(ALLOWED):
+                raise ValueError("Delta contém arquivos fora da lista autorizada")
+            base_min, base_max = manifest.get("min_version"), manifest.get("max_version")
+            if not isinstance(base_min, str) or not base_min == base_max:
+                raise ValueError("Delta sem versão-base única")
+            version_key(base_min)
+            if version_key(base_min) >= version_key(version):
+                raise ValueError("Versão-base do delta inválida")
+            if installed is not None and base_min != installed:
+                raise ValueError("Delta incompatível com a versão instalada")
+        else:
+            raise ValueError("Tipo de atualização desconhecido")
         for i in members:
             if stat.S_ISLNK((i.external_attr >> 16) & 0o170000) or i.is_dir():
                 raise ValueError("ZIP contém links ou diretórios")
-        manifest = json.loads(z.read("update_manifest.json"))
         if not isinstance(manifest, dict) or manifest.get("app") != APP_ID or manifest.get("version") != version:
             raise ValueError("Identidade/versão do manifesto divergente")
         entries = manifest.get("files")
@@ -163,6 +201,9 @@ class Updater:
         self.request = self.state / "store_update_apply.request"
         self.pending = self.work / "pending_health.json"
         self.feed = FEED_URL
+        self.history_file = self.work / "history.json"
+        self.backups_index = self.work / "backups.json"
+        self.local_index = self.work / "local_packages.json"
 
     def installed(self):
         text = (self.app / "VERSION").read_text(encoding="utf-8").strip()
@@ -171,6 +212,93 @@ class Updater:
 
     def publish(self, phase, **fields):
         atomic_json(self.status, dict(phase=phase, **fields))
+
+    def history(self):
+        rows = load_json(self.history_file)
+        return rows if isinstance(rows, list) else []
+
+    def add_history(self, event, **info):
+        rows = self.history()
+        rows.append({"event": event, "time": int(time.time()), **info})
+        atomic_json(self.history_file, rows[-100:])
+
+    def list_backups(self):
+        result = []
+        for path in self.work.glob("backup-*") if self.work.is_dir() else ():
+            if not path.is_dir() or path.is_symlink() or not re.fullmatch(r"backup-[0-9]+-[0-9]+", path.name):
+                continue
+            item = load_json(path / "metadata.json")
+            if not isinstance(item, dict) or item.get("backup") != path.name:
+                continue
+            existing, added = item.get("existing"), item.get("added")
+            if (not isinstance(existing, list) or not isinstance(added, list)
+                    or any(x not in ALLOWED for x in existing + added)):
+                continue
+            if any(not (path / x).is_file() or (path / x).is_symlink() for x in existing):
+                continue
+            result.append({"id": path.name, "from": item.get("from_version", "?"),
+                           "to": item.get("version", "?"), "created": item.get("created", 0),
+                           "files": len(existing) + len(added)})
+        result.sort(key=lambda x: x["id"], reverse=True)
+        return result
+
+    def list_backups_to_disk(self):
+        atomic_json(self.backups_index, self.list_backups())
+
+    def prune_backups(self, keep=3):
+        active = load_json(self.pending) or {}
+        pinned = active.get("backup")
+        kept = 0
+        for item in self.list_backups():
+            if item["id"] == pinned:
+                continue
+            kept += 1
+            if kept > keep:
+                shutil.rmtree(self.work / item["id"])
+        self.list_backups_to_disk()
+
+    def delete_backup(self, name):
+        if not isinstance(name, str) or not re.fullmatch(r"backup-[0-9]+-[0-9]+", name):
+            raise ValueError("Backup inválido")
+        if (load_json(self.pending) or {}).get("backup") == name:
+            raise ValueError("Backup em uso não pode ser excluído")
+        if name not in {x["id"] for x in self.list_backups()}:
+            raise ValueError("Backup ausente ou incompleto")
+        shutil.rmtree(self.work / name)
+        self.add_history("deleted_backup", backup=name)
+        self.list_backups_to_disk()
+
+    def scan_local(self):
+        inbox = self.work / "inbox"
+        results = []
+        if inbox.exists() and not inbox.is_symlink():
+            for entry in sorted(inbox.glob("R36S_ROMS_STORE_v*_UPDATE.zip"))[:30]:
+                if not entry.is_file() or entry.is_symlink() or entry.stat().st_size > MAX_DOWNLOAD:
+                    continue
+                m = re.fullmatch(r"R36S_ROMS_STORE_v(.+)_UPDATE.zip", entry.name)
+                try:
+                    if not m or version_key(m.group(1)) <= version_key(self.installed()):
+                        continue
+                    safe_zip(entry, m.group(1), installed=self.installed())
+                    results.append({"name": entry.name, "version": m.group(1),
+                                    "size": entry.stat().st_size})
+                except (ValueError, KeyError, zipfile.BadZipFile, OSError):
+                    pass
+        atomic_json(self.local_index, results)
+        return results
+
+    def local(self, name):
+        entries = {x["name"]: x for x in self.scan_local()}
+        if name not in entries:
+            raise ValueError("Pacote local não autorizado")
+        data = entries[name]
+        src = self.work / "inbox" / name
+        target = self.work / name
+        shutil.copy2(src, target)
+        sha = filehash(target)
+        safe_zip(target, data["version"], installed=self.installed())
+        self.publish("ready", version=data["version"], filename=name,
+                     sha256=sha, size=data["size"], notes="Pacote local validado")
 
     def fetch(self):
         req = urllib.request.Request(self.feed, headers={"User-Agent": "R36S-ROMs-Store-Updater/1"})
@@ -200,12 +328,14 @@ class Updater:
         if not info:
             return
         self.work.mkdir(parents=True, exist_ok=True)
-        filename = "R36S_ROMS_STORE_v" + info["version"] + "_UPDATE.zip"
+        filename = "R36S_ROMS_STORE_v" + info["version"] + (
+            "_UPDATE_DELTA.zip" if info["kind"] == "incremental" else "_UPDATE.zip")
         path = self.work / filename
         temp = self.work / (filename + ".part")
         temp.unlink(missing_ok=True)
         got = 0
-        self.publish("downloading", version=info["version"], downloaded=0, expected=info["size"])
+        self.publish("downloading", version=info["version"], downloaded=0,
+                     expected=info["size"], kind=info["kind"])
         try:
             req = urllib.request.Request(info["url"], headers={"User-Agent": "R36S-ROMs-Store-Updater/1"})
             with urllib.request.urlopen(req, timeout=40) as resp, open(temp, "wb") as f:
@@ -228,10 +358,11 @@ class Updater:
             if got != info["size"] or h.hexdigest() != info["sha256"]:
                 raise ValueError("SHA-256 ou tamanho do download divergente")
             self.publish("verifying", version=info["version"])
-            safe_zip(temp, info["version"])
+            safe_zip(temp, info["version"], installed=self.installed())
             os.replace(temp, path)
             self.publish("ready", version=info["version"], sha256=info["sha256"], size=got,
-                         notes=str(info.get("notes") or "")[:600], filename=filename)
+                         notes=str(info.get("notes") or "")[:600], filename=filename,
+                         kind=info["kind"])
         finally:
             temp.unlink(missing_ok=True)
 
@@ -261,6 +392,8 @@ class Updater:
         intent = load_json(self.request)
         self.request.unlink(missing_ok=True)
         status = load_json(self.status)
+        if isinstance(intent, dict) and intent.get("action") == "restore":
+            return self.restore_backup(intent.get("backup"))
         if not intent or not status or status.get("phase") != "ready":
             return False
         version = intent.get("version")
@@ -269,14 +402,16 @@ class Updater:
         if version_key(version) <= version_key(self.installed()):
             raise ValueError("A versão não é mais recente")
         path = self.work / status.get("filename", "")
-        if path.name != "R36S_ROMS_STORE_v" + version + "_UPDATE.zip" or not path.is_file():
+        if path.name not in ("R36S_ROMS_STORE_v" + version + "_UPDATE.zip",
+                             "R36S_ROMS_STORE_v" + version + "_UPDATE_DELTA.zip") or not path.is_file():
             raise ValueError("Pacote de atualização ausente")
         if filehash(path) != status["sha256"] or path.stat().st_size != status["size"]:
             raise ValueError("Pacote alterado após download")
-        paths = safe_zip(path, version)
+        paths = safe_zip(path, version, installed=self.installed())
         # Não permitir uma segunda atualização enquanto existe rollback pendente.
         if self.pending.exists():
             raise ValueError("Existe uma atualização aguardando validação")
+        from_version = self.installed()
         stamp = "backup-" + str(time.time_ns()) + "-" + str(os.getpid())
         backup = self.work / stamp
         backup.mkdir(parents=True, exist_ok=False)
@@ -296,7 +431,9 @@ class Updater:
                         existing.append(rel)
                     else:
                         added.append(rel)
-                meta = {"version": version, "existing": existing, "added": added, "backup": stamp}
+                meta = {"version": version, "from_version": from_version,
+                        "created": int(time.time()), "existing": existing,
+                        "added": added, "backup": stamp}
                 atomic_json(backup / "metadata.json", meta)
                 atomic_json(self.pending, meta)
                 for rel in sorted(paths):
@@ -310,6 +447,9 @@ class Updater:
                     os.chmod(tmp, 0o755 if (rel.endswith(".sh") or rel.endswith("/bin/7zzs")) else 0o644)
                     os.replace(tmp, dst)
             self.publish("installed", version=version)
+            self.add_history("installed", source=from_version, target=version,
+                             package=path.name, backup=stamp)
+            self.list_backups_to_disk()
             return True
         except Exception:
             self.rollback()
@@ -334,20 +474,78 @@ class Updater:
             shutil.copy2(source, tmp)
             os.replace(tmp, dst)
         self.pending.unlink(missing_ok=True)
+        self.add_history("rolled_back", version=self.installed(), backup=name)
+        self.list_backups_to_disk()
         self.publish("rolled_back", version=self.installed())
         return True
+
+    def restore_backup(self, name):
+        if not isinstance(name, str) or name not in {x["id"] for x in self.list_backups()}:
+            raise ValueError("Backup não encontrado")
+        if self.pending.exists():
+            raise ValueError("Já existe uma atualização pendente")
+        source = self.work / name
+        selected = load_json(source / "metadata.json")
+        files = selected["existing"]
+        remove = selected["added"]
+        for rel in files:
+            self.target(rel)
+            if not (source / rel).is_file() or (source / rel).is_symlink():
+                raise ValueError("Backup incompleto")
+        for rel in remove:
+            self.target(rel)
+        previous = self.installed()
+        stamp = "backup-" + str(time.time_ns()) + "-" + str(os.getpid())
+        current = self.work / stamp
+        current.mkdir(parents=True)
+        have, added = [], []
+        try:
+            for rel in sorted(set(files + remove)):
+                dst = self.target(rel)
+                if dst.exists():
+                    if not dst.is_file():
+                        raise ValueError("Destino inválido")
+                    save = current / rel
+                    save.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(dst, save)
+                    have.append(rel)
+                else:
+                    added.append(rel)
+            meta = {"version": selected.get("from_version", "?"),
+                    "from_version": previous, "created": int(time.time()),
+                    "existing": have, "added": added, "backup": stamp}
+            atomic_json(current / "metadata.json", meta)
+            atomic_json(self.pending, meta)
+            for rel in files:
+                dst = self.target(rel)
+                tmp = dst.with_name(dst.name + ".store_restore_new")
+                shutil.copy2(source / rel, tmp)
+                os.replace(tmp, dst)
+            for rel in remove:
+                self.target(rel).unlink(missing_ok=True)
+            restored = self.installed()
+            self.add_history("restored", source=previous, target=restored, backup=name)
+            self.publish("installed", version=restored)
+            return True
+        except Exception:
+            self.rollback()
+            raise
 
     def confirm(self):
         meta = load_json(self.pending)
         if meta:
             self.pending.unlink(missing_ok=True)
+            self.add_history("confirmed", version=self.installed())
+            self.prune_backups()
             self.publish("installed", version=self.installed())
         return bool(meta)
 
 
 def main(argv):
-    if len(argv) != 2 or argv[1] not in ("check", "download", "apply", "rollback", "confirm", "recover"):
-        raise SystemExit("Uso: store_updater.py check|download|apply|rollback|confirm|recover")
+    if len(argv) < 2 or argv[1] not in ("check", "download", "apply", "rollback", "confirm", "recover", "list", "scan_local", "local", "delete"):
+        raise SystemExit("Uso: store_updater.py check|download|apply|rollback|confirm|recover|list|scan_local|local|delete")
+    if (argv[1] in ("local", "delete") and len(argv) != 3) or (argv[1] not in ("local", "delete") and len(argv) != 2):
+        raise SystemExit("Parâmetros inválidos")
     task = argv[1]
     updater = Updater()
     try:
@@ -363,6 +561,14 @@ def main(argv):
             updater.rollback()
         elif task == "confirm":
             updater.confirm()
+        elif task == "list":
+            updater.list_backups_to_disk()
+        elif task == "scan_local":
+            updater.scan_local()
+        elif task == "local":
+            updater.local(argv[2])
+        elif task == "delete":
+            updater.delete_backup(argv[2])
         return 0
     except Exception as e:
         updater.publish("error", message=str(e)[:240])

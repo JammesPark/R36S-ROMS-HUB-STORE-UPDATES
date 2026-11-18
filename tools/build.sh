@@ -28,3 +28,4 @@ rm -f port/r36s-roms-store/game.love
 (cd src && zip -X -q -r ../port/r36s-roms-store/game.love .)
 python3 tools/build_ota.py
 python3 tests/test_ota_update.py
+python3 tests/test_ota_advanced.py

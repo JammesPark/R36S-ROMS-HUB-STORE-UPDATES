@@ -73,7 +73,7 @@ from zipfile import ZIP_DEFLATED
 full=sorted(new.ALLOWED)
 with TemporaryDirectory(prefix='roms-future-ota-') as td:
  temp=Path(td);out=temp/'full-update.zip'
- future='0.4.5-beta'
+ future='0.4.7-beta'
  with zipfile.ZipFile(root/'port'/app/'game.love') as z:
   old_contents=[(i.filename,z.read(i.filename)) for i in z.infolist() if not i.is_dir()]
  love_stream=io.BytesIO()
