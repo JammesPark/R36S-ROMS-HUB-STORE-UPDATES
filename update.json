@@ -2,13 +2,13 @@
   "app": "r36s-roms-store",
   "channel": "beta",
   "status": "published",
-  "version": "0.3.1-beta",
-  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.3.1-beta/R36S_ROMS_STORE_v0.3.1-beta_UPDATE.zip",
-  "sha256": "998d4b45cea5214bb00dfa910499d8a92ab5b12f71fbe9a7c7538a5b52e71026",
-  "size": 7022183,
-  "notes": "R36S ROMS STORE 0.3.1-beta\n\n- Atualizador migrado para o repositório público exclusivo `JammesPark/R36S-ROMS-STORE-UPDATES`, sem utilizar o canal do outro HUB.\n- Feed `update.json` próprio e publicação preparada para criar o feed na primeira Release.\n- Testes de isolamento do feed, versão, URL e ausência de dependências do repositório anterior.\n- A ativação pública depende da criação do novo repositório e do token restrito do Actions.\n\nSoftware GPL-3.0.\n",
-  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.3.1-beta/R36S_ROMS_STORE_v0.3.1-beta_TESTE.zip",
-  "installer_sha256": "bbb011ad8bf1c39efc438673e04f22625fc30385a6ab0ce81949773057b504d0",
-  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.3.1-beta/R36S_ROMS_STORE_v0.3.1-beta_FONTE.zip",
-  "source_sha256": "d27ff81e66dc8aa4fe42b12cc14bc2bc0e878820cda39f1a73641a8657300eb9"
+  "version": "0.4.0-beta",
+  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.0-beta/R36S_ROMS_STORE_v0.4.0-beta_UPDATE.zip",
+  "sha256": "758e1d3dc2a8b26dc3f1c8171af28873bebef24ad3227e1df1129543b63c9b95",
+  "size": 7030746,
+  "notes": "R36S ROMS STORE 0.4.0-beta\n\n- Popup de nova atualização com versão instalada, versão disponível e resumo das mudanças.\n- Nova área **Configurações → BIOS do Sistema** com scanner próprio (sem reaproveitar código do Port Hub), importação de arquivos próprios, instalação cautelosa, backup e restauração.\n- O sistema não fornece nem baixa imagens de BIOS protegidas; apenas identifica nomes conhecidos e arquivos que o usuário coloca em `state/bios_import`.\n- No catálogo e nos resultados de busca, botão **Y** adiciona ou remove a ROM selecionada dos favoritos.\n- Na tela inicial, **B** abre a confirmação de saída; ←/→ selecionam Sim/Não, **A** confirma e **B** cancela.\n- Mantido canal público exclusivo de atualização, com pacote UPDATE incluindo o novo gerenciador de BIOS.\n- Todas as funcionalidades passaram no GitHub Actions antes da publicação beta.\n\nSoftware GPL-3.0.\n",
+  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.0-beta/R36S_ROMS_STORE_v0.4.0-beta_TESTE.zip",
+  "installer_sha256": "875249e7756afdc00156d322d1df680550b8cb104fb83e4496cde9a0ec553d96",
+  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.0-beta/R36S_ROMS_STORE_v0.4.0-beta_FONTE.zip",
+  "source_sha256": "216cc5685e7a816703ce9ff08e1239bddd6d9aa39d56e8cb0b8555c732233fae"
 }
