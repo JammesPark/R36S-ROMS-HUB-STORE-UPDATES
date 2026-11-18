@@ -99,21 +99,21 @@ local function draw_cover(item,x,y,w,h)
  end
  local iw,ih=img:getWidth(),img:getHeight()
  if iw<=0 or ih<=0 then return end
- local scale=math.min(w/iw,h/ih)
+ -- A capa principal ocupa o painel todo, mesmo com proporcoes diferentes.
  ui.color({1,1,1})
- love.graphics.draw(img,x+(w-iw*scale)/2,y+(h-ih*scale)/2,0,scale,scale)
+ love.graphics.draw(img,x,y,0,w/iw,h/ih)
 end
 local function request_previews()
  if M.previewBusy or not M.home then return end
- local first=math.max(1,math.min(M.selected-2,math.max(1,#M.items-5)))
+ -- A lista nao usa miniaturas: priorizar a selecionada e a seguinte.
  local ids={}
- for idx=first,math.min(#M.items,first+5) do
+ for _,idx in ipairs({M.selected,M.selected+1}) do
   local item=M.items[idx]
   if item and item.preview and item.preview~='' and
-     tostring(item.id or ''):match('^[%w._%-]+$') and not cover_path(item.id) and
-     not M.previewAttempted[item.id] then
-    ids[#ids+1]=item.id
-    M.previewAttempted[item.id]=true
+     tostring(item.id or ''):match('^[%w._%-]+$') and
+     not cover_path(item.id) and not M.previewAttempted[item.id] then
+   ids[#ids+1]=item.id
+   M.previewAttempted[item.id]=true
   end
  end
  if #ids==0 then return end
@@ -227,33 +227,27 @@ function M.draw(header,lang)
  txt(t('screen')..':',193,102,11,theme.muted,90)
  txt('‹ '..selected_size()..' ›',290,100,14,theme.accent,158,true)
  txt(#M.items..' '..t('browse'),450,105,9,theme.muted,156)
+ -- Apenas nomes na lista; capa grande somente do tema selecionado.
+ local first=math.max(1,math.min(M.selected-2,math.max(1,#M.items-5)))
  for row=0,5 do
-  local first=math.max(1,math.min(M.selected-2,math.max(1,#M.items-5)))
-  local i=first+row
-  local it=M.items[i]
+  local it=M.items[first+row]
   if it then
    local y=140+row*45
-   ui.panel(180,y,251,42,i==M.selected)
-   draw_cover(it,185,y+4,54,34)
-   txt(ell(it.name,22),246,y+5,11,theme.text,177)
-   local s=installed_path(it) and t('installed') or
-     (compatible(it)=='yes' and t('good') or t('untested'))
-   txt(ell(it.author or it.source or '',19),246,y+24,9,theme.muted,98)
-   txt(s,343,y+24,9,installed_path(it) and theme.green or theme.accent,78,true)
+   ui.panel(180,y,181,42,first+row==M.selected)
+   txt(ell(it.name,23),192,y+13,12,first+row==M.selected and theme.accent or theme.text,158)
   end
  end
- ui.panel(440,140,180,266)
+ ui.panel(370,140,250,266)
  local it=M.items[M.selected]
  if it then
-  txt(ell(it.name,22),450,147,12,theme.accent,162,true)
-  draw_cover(it,451,171,158,108)
-  txt(t('author')..': '..ell(it.author or t('unknown'),16),451,286,10,theme.text,158)
-  txt(compatible(it)=='yes' and t('good') or t('untested'),451,309,10,
-    compatible(it)=='yes' and theme.green or theme.accent,158,true)
-  rect(451,351,158,36,theme.accent,7)
-  txt(t('install'),456,361,12,theme.bg,146,true)
+  txt(ell(it.name,30),381,148,13,theme.accent,225,true)
+  draw_cover(it,380,173,230,171)
+  local ready=not M.busy
+  rect(380,354,230,40,ready and theme.accent or theme.panel2,7,ready and theme.accent or theme.border)
+  txt(ready and t('install') or t('working'),385,365,12,
+    ready and theme.bg or theme.muted,220,true)
  else
-  txt(t('no'),453,210,11,theme.muted,154,true)
+  txt(t('no'),382,233,11,theme.muted,226,true)
  end
  txt(t('adjust')..'   '..t('refresh')..'   '..t('back'),183,416,10,theme.muted,435)
  if M.status~='' then txt(ell(M.status,56),184,429,9,M.busy and theme.accent or theme.low,432) end
@@ -280,10 +274,15 @@ function M.key(key)
  elseif key=='down' then M.selected=math.min(#M.items,M.selected+1)
  elseif key=='left' or key=='l' then M.change_size(-1)
  elseif key=='right' or key=='r' then M.change_size(1)
- elseif key=='y' then spawn('refresh')
- elseif key=='a' and not M.busy then
-  local it=M.items[M.selected]
-  if it then M.modal={id=it.id,name=it.name} end
+ elseif key=='y' then
+  M.previewAttempted={}
+  spawn('refresh')
+ elseif key=='a' then
+  if M.busy then M.status=t('working')
+  else
+   local it=M.items[M.selected]
+   if it then M.modal={id=it.id,name=it.name} end
+  end
  end
  return true
 end
@@ -296,13 +295,13 @@ function M.mouse(x,y)
   if x<291 then M.change_size(-1) elseif x<446 then M.change_size(1) end
   return true
  end
- if x>=180 and x<=430 and y>=140 and y<=408 then
+ if x>=180 and x<=361 and y>=140 and y<=408 then
   local first=math.max(1,math.min(M.selected-2,math.max(1,#M.items-5)))
   local i=first+math.floor((y-140)/45)
   if M.items[i] then M.selected=i end
   return true
  end
- if x>=451 and x<=609 and y>=345 and y<=384 then M.key('a');return true end
+ if x>=380 and x<=610 and y>=354 and y<=394 then M.key('a');return true end
  return false
 end
 function M.hasModal() return M.modal~=nil end
