@@ -388,13 +388,21 @@ local function homePage()
     R(194,155,258,9,theme.border,4)
     if percent and percent>0 then R(194,155,258*percent,9,theme.green,4) end
     txt(percent and string.format('%d%%',math.floor(percent*100+.5)) or '—',458,152,11,theme.text,29,true)
+    -- A mesma velocidade/ETA da Central de Downloads aparece no Inicio.
+    -- Tres areas separadas, sem invadir o botao Downloads em x=495.
+    local sizeText
     if expected>0 then
-      txt(string.format('%.1f / %.1f MB',downloaded/1048576,expected/1048576),194,173,9,theme.muted,285)
+      sizeText=string.format('%.1f / %.1f MB',downloaded/1048576,expected/1048576)
     elseif downloaded>0 then
-      txt(string.format('%.1f MB',downloaded/1048576),194,173,9,theme.muted,285)
+      sizeText=string.format('%.1f MB',downloaded/1048576)
     else
-      txt(transferCenter.label(settings.language,current.phase),194,173,9,theme.muted,274)
+      sizeText=transferCenter.label(settings.language,current.phase)
     end
+    txt(ui.ellipsize(sizeText,30),194,173,9,theme.muted,141)
+    local rate=transferCenter.rateText(current)
+    local eta=transferCenter.etaText(current)
+    if rate~='—' then txt(rate,338,173,9,theme.accent,90,true) end
+    if eta~='—' then txt(eta,432,173,9,theme.muted,55,true) end
   else
     txt(tr('no_current_download'),194,138,12,theme.muted,287)
   end
