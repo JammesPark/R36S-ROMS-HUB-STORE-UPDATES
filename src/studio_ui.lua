@@ -329,7 +329,7 @@ local function fallback(c,legacy)
    S.canvas=g.newCanvas(640,480,{format='normal',msaa=0})
    S.canvas:setFilter('linear','linear')
   end
-  if not S.quad then S.quad=g.newQuad(179,102,441,326,640,480) end
+  if not S.quad then S.quad=g.newQuad(179,85,441,330,640,480) end
  end)
  if not prepared then
   -- Drivers sem Canvas continuam com acesso aos motores pelas teclas.
@@ -349,9 +349,9 @@ local function fallback(c,legacy)
  end)
  g.pop()
  if ok then
-  panel(75,116,491,322)
+  panel(90,112,460,331)
   U.color({1,1,1})
-  g.draw(S.canvas,S.quad,84,119)
+  g.draw(S.canvas,S.quad,99,114)
  else
   print('[STUDIO] erro no corpo: '..tostring(err):sub(1,180))
   title(c,'SISTEMA / '..string.upper(c.screen or ''), 'Modo seguro')
@@ -359,7 +359,7 @@ local function fallback(c,legacy)
      25,238,11,T.muted,588,true)
  end
  -- Mapeia a area antiga de clique para o conteudo centralizado.
- tap(84,119,441,326,'legacy',nil,{sourceX=179,sourceY=102})
+ tap(99,114,441,330,'legacy',nil,{sourceX=179,sourceY=85})
 end
 function S.draw(c,legacy)
  S.hits={}
