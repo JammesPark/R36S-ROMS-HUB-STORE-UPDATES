@@ -14,6 +14,7 @@ local biosUI=require('bios_enhanced_ui') -- layout nativo + motor de BIOS GPL-3.
 local esUI=require('es_theme_ui') -- temas ES: catálogo ThemeMaster/OGA e instalador isolado
 local transferCenter=require('download_center') -- ROM, BIOS, temas e atualização OTA
 local transferQueue=require('transfer_queue') -- fila persistente; motores mantem validacoes
+local studioUI=require('studio_ui') -- segundo layout nativo, sem afetar o classico
 local homeLayout=require('home_layout') -- geometria do conceito aprovado em 640x480
 local display=require('display_resolution') -- tela fisica + viewport 640x480
 local HOME=os.getenv('R36S_STORE_HOME') or '/roms/ports/r36s-roms-store'
@@ -22,7 +23,7 @@ local mainPages={'home','catalog','bios','es_themes','downloads','installed','fa
 local menuPages={'home','catalog','bios','es_themes','downloads','installed','favorites','settings','about','exit'}
 local screen='startup'
 local stack={}
-local settings={language='pt',theme='ocean',font_size='medium'}
+local settings={language='pt',theme='ocean',font_size='medium',layout='classic'}
 local languageChosen=false -- salvo apenas depois da escolha inicial do usuario
 local aboutScroll=0
 local aboutMaxScroll=0
@@ -41,14 +42,14 @@ local favorites={}
 local downloads={}
 local focus='sidebar'; local menuIndex=1;local categoryIndex=1;local gameIndex=1
 local favIndex=1;local installIndex=1;local historyIndex=1;local updateBackupIndex=1;local updateHistoryScroll=0;local updateLocalIndex=1;local settingsIndex=1;local downloadScroll=0
-local languageIndex=1;local themeIndex=1;local fontSizeIndex=2;local searchIndex=1;local query='';local searchResultIndex=1
+local languageIndex=1;local themeIndex=1;local layoutIndex=1;local studioNavFocus=false;local fontSizeIndex=2;local searchIndex=1;local query='';local searchResultIndex=1
 local selectedGame=nil
 local lastStatus='';local lastManifest='';local coverImages={};local coverSeen={}
 local clock=0;local startupTime=0;local notice='';local noticeTime=0
 local selectedCard=1;local transferHandled=false
 local homeFocus='explore';local homeSlideIndex=1;local homeOverviewIndex=1;local homeSlideClock=0
 local storageInfo={};local storageLast=-999
-local suboptions={'languages','themes','font_size','storage','network','updates','help'}
+local suboptions={'languages','layout_choice','themes','font_size','storage','network','updates','help'}
 local fontSizes={'small','medium','large'}
 local keyboard={'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','SPACE','DEL','CLEAR','OK'}
 -- Versão exibida obtida do arquivo VERSION incluído no game.love.
@@ -82,8 +83,9 @@ local function encodeString(s)
   return '"'..tostring(s or ''):gsub('[\\"\n\r\t]',replacements)..'"'
 end
 local function saveSettings()
-  return write(STATE..'/roms_settings.json',string.format('{"language":%s,"theme":%s,"font_size":%s,"language_chosen":%s}',
-    encodeString(settings.language),encodeString(settings.theme),encodeString(settings.font_size),tostring(languageChosen)))
+  return write(STATE..'/roms_settings.json',string.format('{"language":%s,"theme":%s,"font_size":%s,"layout":%s,"language_chosen":%s}',
+    encodeString(settings.language),encodeString(settings.theme),encodeString(settings.font_size),
+    encodeString(settings.layout),tostring(languageChosen)))
 end
 local function saveFavorites()
   local items={}
@@ -102,6 +104,7 @@ local function loadData()
     languageChosen=(c.language_chosen==true)
     for i,l in ipairs(i18n.languages) do if l.code==c.language then settings.language=l.code;languageIndex=i end end
     for _,t in ipairs(theme.options) do if t.key==c.theme then settings.theme=t.key end end
+    if c.layout=='studio' then settings.layout='studio';layoutIndex=2 end
     for idx,v in ipairs(fontSizes) do
       if v==c.font_size then settings.font_size=v;fontSizeIndex=idx end
     end
@@ -114,6 +117,7 @@ local function loadData()
       end
     end
   end
+  theme.setLayout(settings.layout)
   theme.set(settings.theme)
   ui.setFontSize(settings.font_size)
 end
@@ -208,6 +212,7 @@ local function navigate(route)
   if route=='es_themes' then esUI.enter() end
   music.updateRoute(screen)
   if route=='storage' then refreshStorage() end
+  if route=='layout_choice' then layoutIndex=settings.layout=='studio' and 2 or 1 end
   if route=='font_size' then
     for idx,v in ipairs(fontSizes) do if v==settings.font_size then fontSizeIndex=idx end end
   end
@@ -645,16 +650,17 @@ end
 local function settingsPage()
   header(tr('personalize'),tr('title_settings'))
   local lang=settings.language
-  local values={tr('language'),tr('theme'),tr('font_size'),tr('storage'),tr('network'),
-    storeUpdater.tr(lang,'title'),tr('help')}
+  local values={tr('language'),tr('layout_choice'),tr('theme'),tr('font_size'),
+    tr('storage'),tr('network'),storeUpdater.tr(lang,'title'),tr('help')}
   local up=storeUpdater.status
   local detail=(up.phase=='available' or up.phase=='ready') and ('v'..tostring(up.version or '?'))
     or storeUpdater.tr(lang,up.phase or 'checking')
-  local shown={i18n.languages[1].name,tr('theme_blue'),tr('font_'..settings.font_size),
+  local shown={i18n.languages[1].name,tr(settings.layout=='studio' and 'layout_studio' or 'layout_classic'),
+    tr('theme_blue'),tr('font_'..settings.font_size),
     tr('free_space')..' / '..tr('total_space'),tr('status'),detail,'A / B / X / Y'}
   for _,o in ipairs(i18n.languages) do if o.code==settings.language then shown[1]=o.name end end
-  for _,o in ipairs(theme.options) do if o.key==settings.theme then shown[2]=tr(o.name) end end
-  local symbols={'languages','palette','type','hard-drive','wifi','download','circle-help'}
+  for _,o in ipairs(theme.options) do if o.key==settings.theme then shown[3]=tr(o.name) end end
+  local symbols={'languages','monitor','palette','type','hard-drive','wifi','download','circle-help'}
   for i,label in ipairs(values) do
     local y=100+(i-1)*40
     panel(180,y,440,37,i==settingsIndex)
@@ -663,6 +669,31 @@ local function settingsPage()
     txt(ui.ellipsize(label,38),224,y+2,11,theme.text,354)
     txt(ui.ellipsize(shown[i],56),224,y+21,9,theme.muted,359)
     txt('›',590,y+4,16,theme.accent)
+  end
+  footer()
+end
+local function layoutChoicePage()
+  header(tr('personalize'),tr('layout_choice'))
+  txt(tr('layout_hint'),183,105,11,theme.muted,432)
+  local options={{id='classic',title=tr('layout_classic'),subtitle='Menu lateral · 640x480'},
+                 {id='studio',title=tr('layout_studio'),subtitle='Menu superior · paletas completas'}}
+  for i,opt in ipairs(options) do
+    local x=180+(i-1)*221
+    local selected=settings.layout==opt.id
+    panel(x,166,216,203,layoutIndex==i)
+    if i==1 then
+      R(x+15,181,40,115,theme.panel2,7,theme.border)
+      R(x+64,181,137,115,theme.sidebar,7,theme.border)
+    else
+      R(x+15,181,186,24,theme.panel2,7,theme.border)
+      R(x+15,213,186,83,theme.sidebar,7,theme.border)
+      for j=1,3 do
+        R(x+21+(j-1)*59,225,51,61,theme.highlight or theme.panel2,5,theme.border)
+      end
+    end
+    txt(opt.title,x+15,306,16,selected and theme.accent or theme.text,187)
+    txt(opt.subtitle,x+15,338,10,theme.muted,190)
+    if selected then txt('✓',x+175,306,15,theme.accent,26) end
   end
   footer()
 end
