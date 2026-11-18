@@ -1289,8 +1289,8 @@ local function handleGlobalModal(key)
           game_path=selectedGame.game_path,category=selectedGame.category,
           name=selectedGame.name or 'ROM',sha256=selectedGame.sha256 or '',
           card=selectedCard,overwrite=true})
-        if ok then navigate('downloads') end
-      else notice='Falha na sobrescrita';noticeTime=3 end
+        if ok then navigate('downloads')
+        else notice='Falha ao colocar ROM na fila';noticeTime=3 end
     elseif key=='b' then duplicateModal=false end
     return true
   end
