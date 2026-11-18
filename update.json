@@ -2,13 +2,13 @@
   "app": "r36s-roms-store",
   "channel": "beta",
   "status": "published",
-  "version": "0.4.4-beta",
-  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.4-beta/R36S_ROMS_STORE_v0.4.4-beta_UPDATE.zip",
-  "sha256": "f8b1cede31632f128b5e11e3a89cfdcdd5279d628af953975fd2f32abca1bedd",
-  "size": 8848924,
-  "notes": "R36S ROMS STORE 0.4.4-beta\n- Atualizador OTA compatível com versões 0.4.1-beta e 0.4.3-beta.\n- BIOS e Loja de Temas permanecem no menu principal.\n- Bootstrap seguro de módulos no game.love; backup e rollback mantidos.\n- O download depende de confirmação do usuário.\n",
-  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.4-beta/R36S_ROMS_STORE_v0.4.4-beta_TESTE.zip",
-  "installer_sha256": "b3393f2a817ebd48e8660a31d34aaa53261f649b574230bc3603f9da9700c4e0",
-  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.4-beta/R36S_ROMS_STORE_v0.4.4-beta_FONTE.zip",
-  "source_sha256": "020a2360deda8fea08d65f67261d4fa639ecd9a8111f1a33fb1ded90f92dff72"
+  "version": "0.4.5-beta",
+  "url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.5-beta/R36S_ROMS_STORE_v0.4.5-beta_UPDATE.zip",
+  "sha256": "271469a2360ec81f5c9f3b041a3be1e432e0587b53153e0870d334efcaf6ee15",
+  "size": 10393506,
+  "notes": "R36S ROMS STORE 0.4.5-beta\n- Central de Downloads: ROMs, BIOS, Temas e atualizações da loja.\n- Temas EmulationStation com prévias e capas em cache no SD.\n- Nova ordem do menu: Início, Catálogo, BIOS, Temas, Downloads, Instalados, Favoritos, Configurações, Sobre e Sair.\n- Mantidos SHA-256, backup/rollback e confirmação para instalar.\n",
+  "installer_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.5-beta/R36S_ROMS_STORE_v0.4.5-beta_TESTE.zip",
+  "installer_sha256": "b01b2f12441b5842159ad53323656b42a13e0eef1b0a0e0937eb19ba7be00244",
+  "source_url": "https://github.com/JammesPark/R36S-ROMS-STORE-UPDATES/releases/download/roms-v0.4.5-beta/R36S_ROMS_STORE_v0.4.5-beta_FONTE.zip",
+  "source_sha256": "2ffe8af34a2bf7f22b65f1f75f105f7dd872bab38fc0b06118bdbbce3d30c9e2"
 }
