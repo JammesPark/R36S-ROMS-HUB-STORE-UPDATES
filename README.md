@@ -1,4 +1,19 @@
-# R36S ROMS STORE — 0.4.14-beta
+# R36S ROMS STORE — 0.4.15-beta
+
+## Reparação 0.4.15-beta — erro na linha 1743
+
+O acesso de atualização de catálogo em Rede/Sem conexão é executado de
+maneira protegida: falha na leitura do backend, exceção de IO ou erro ao iniciar
+a transferência é registrado sem interromper o aplicativo. No Studio, falhas de
+eventos de entrada ou de inicialização do renderizador restauram o Clássico
+automaticamente. Os dados do catálogo, as filas de download e o OTA não são
+alterados.
+
+Se uma instalação de 0.4.14-beta não permitir abrir Configurações, o visual
+Clássico pode ser restaurado manualmente editando o arquivo
+`state/roms_settings.json` da pasta da loja: altere apenas
+`"layout":"studio"` para `"layout":"classic"` e inicie novamente.
+Não exclua o arquivo de configurações ou dados do SD.
 
 ## Segundo tema nativo: Layout B — Studio (0.4.14-beta)
 
