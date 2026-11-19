@@ -20,11 +20,15 @@ assert "local uiGuard=require('ui_error_guard')" in s
 assert "uiGuard.call('refreshCatalog'" in s
 assert "uiGuard.call('handleKey:'" in s
 assert "STATE..'/ui_last_error.log'" in s
+assert "local function updateBody(dt)" in s and "uiGuard.call('love.update'" in s
+assert "uiGuard.call('love.draw',drawVirtual)" in s
+assert "return true" in s.split("local function handleGlobalModal(key)",1)[1].split("if storeUpdateModal then",1)[0], "Modal must consume A/B"
+
 assert s.index("local function reportUIError") < s.index("local function handleKey")
 assert (root/'src/ui_error_guard.lua').exists()
 
 assert "uiGuard.call('handleKey:'" in s and "restoreClassicOnInputError(err)" in s
-assert "pcall(mousePressedBody,x,y,button)" in s
+assert "uiGuard.call('love.mousepressed'" in s and "mousePressedBody(x,y,button)" in s
 assert "settings.layout='classic';studioNavFocus=false" in s
 assert "theme.setLayout('classic');saveSettings()" in s, "Studio errors need a safe Classic fallback"
 assert "local studioUI=require('studio_ui')" in s
@@ -69,7 +73,7 @@ assert 't.window.width = 640' in conf and 't.window.height = 480' in conf
 assert "local display=require('display_resolution')" in s
 assert "display.init()" in s and "function love.resize(w,h)" in s
 assert "local function drawVirtual()" in s
-assert "display.beginFrame()" in s and "display.endFrame(inCanvas)" in s
+assert "pcall(display.beginFrame)" in s and "pcall(display.endFrame,inCanvas)" in s
 assert "x,y=display.pointer(x,y)" in s, "Mouse must map to virtual 640x480"
 assert "getDesktopDimensions" in display and "fallback 640x480" in display
 assert "fullscreen=true" in display and "getDimensions" in display
