@@ -23,7 +23,7 @@ assert "STATE..'/ui_last_error.log'" in s
 assert s.index("local function reportUIError") < s.index("local function handleKey")
 assert (root/'src/ui_error_guard.lua').exists()
 
-assert "pcall(handleKey,key)" in s and "restoreClassicOnInputError(err)" in s
+assert "uiGuard.call('handleKey:'" in s and "restoreClassicOnInputError(err)" in s
 assert "pcall(mousePressedBody,x,y,button)" in s
 assert "settings.layout='classic';studioNavFocus=false" in s
 assert "theme.setLayout('classic');saveSettings()" in s, "Studio errors need a safe Classic fallback"
