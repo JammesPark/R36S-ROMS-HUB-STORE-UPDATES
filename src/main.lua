@@ -1780,12 +1780,13 @@ local function restoreClassicOnInputError(err)
   if settings.layout~='studio' then return end
   settings.layout='classic'
   studioNavFocus=false
-  theme.setLayout('classic')
-  saveSettings()
+  -- A propria rotina de recuperacao tambem nao deve abrir tela azul.
+  pcall(theme.setLayout,'classic')
+  pcall(saveSettings)
   notice=tr('network_error')
   noticeTime=4
-  -- Se a tela caiu por erro de backend, o Inicio permite acessar configuracoes.
-  mainRoute('home')
+  screen='home';stack={};focus='sidebar';menuIndex=1
+  pcall(music.updateRoute,screen)
 end
 local function safeHandleKey(key)
   if settings.layout~='studio' then return handleKey(key) end
