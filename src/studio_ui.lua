@@ -38,7 +38,7 @@ local function top(c)
  tx('R36S ROMS STORE STUDIO',63,15,10,T.muted,360)
  local heading=t(c,c.screen=='home' and 'title_home' or c.screen)
  if c.screen=='es_themes' then heading=t(c,'es_themes')
- elseif c.screen=='layout_choice' then heading=t(c,'layouts')
+ elseif c.screen=='layout_choice' then heading=t(c,'layout_choice')
  elseif c.screen=='themes' then heading=t(c,'themes')
  elseif c.screen=='bios' then heading=t(c,'bios')
  elseif c.screen=='settings' then heading=t(c,'title_settings') end
