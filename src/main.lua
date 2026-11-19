@@ -1280,7 +1280,11 @@ local function studioContext()
 end
 local function drawVirtual()
   if settings.layout~='studio' then return drawClassicVirtual() end
-  local ok,err=pcall(studioUI.draw,studioContext(),drawClassicVirtual)
+  -- studioContext tambem precisa estar dentro do pcall: argumentos Lua
+  -- sao avaliados ANTES da chamada protegida.
+  local ok,err=pcall(function()
+    studioUI.draw(studioContext(),drawClassicVirtual)
+  end)
   if not ok then
     -- Falha do layout opcional nao pode impedir a loja de inicializar.
     print('[STUDIO] Erro visual: '..tostring(err):sub(1,250)..' - restaurando Classico')
@@ -1342,16 +1346,27 @@ local function moveGrid(dx,dy)
   gameIndex=math.max(1,math.min(n,next))
 end
 local function refreshCatalog()
-  if external.busy() then
+  -- Nunca deixar uma falha de IO, rede ou helper Python abrir tela azul.
+  -- O motor continua responsavel por relatar o resultado real do catalogo.
+  local okBusy,busy=pcall(external.busy)
+  if not okBusy then
+    print('[CATALOG] Falha ao verificar estado: '..tostring(busy))
+    notice=tr('network_error');noticeTime=3
+    return false
+  end
+  if busy then
     notice=tr('syncing');noticeTime=2
     return false
   end
-  if external.refresh() then
-    notice=tr('syncing');noticeTime=2
-    return true
+  local okRefresh,started=pcall(external.refresh)
+  if not okRefresh then
+    print('[CATALOG] Erro ao iniciar atualizacao: '..tostring(started))
+    notice=tr('network_error');noticeTime=3
+    return false
   end
-  notice=tr('network_error');noticeTime=2.5
-  return false
+  notice=started and tr('syncing') or tr('network_error')
+  noticeTime=started and 2 or 3
+  return started==true
 end
 -- Modal separado para nao ultrapassar o limite de 60 upvalues do LuaJIT.
 local function handleGlobalModal(key)
@@ -1740,7 +1755,9 @@ local function handleKey(key)
     elseif key=='b' then back() end
     return
   elseif screen=='network' or screen=='offline' then
-    if key=='a' or key=='y' then refreshCatalog()
+    if key=='a' or key=='y' then
+      -- Mantem a interface utilizavel mesmo se o backend local falhar.
+      refreshCatalog()
     elseif key=='b' then back() end
     return
   elseif screen=='about' or screen=='help' then
