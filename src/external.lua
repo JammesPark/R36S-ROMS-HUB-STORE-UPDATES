@@ -82,11 +82,12 @@ end
 function M.loadSearch()
   local data=cached(state..'/gamestore_search.json')
   if data and type(data.games)=='table' then
+    local valid=safeGames(data.games)
     local page=tonumber(data.page) or 1
     if M.appendSearch and page==M.searchPage+1 and tostring(data.query or '')==M.searchQuery then
       local seen={}
       for _,g in ipairs(M.searchResults) do seen[g.game_path]=true end
-      for _,g in ipairs(data.games) do
+      for _,g in ipairs(valid) do
         if not seen[g.game_path] then M.searchResults[#M.searchResults+1]=g;seen[g.game_path]=true end
       end
     else M.searchResults=valid end
