@@ -83,6 +83,13 @@ local function encodeString(s)
   local replacements={['\\']='\\\\',['"']='\\"',['\n']='\\n',['\r']='\\r',['\t']='\\t'}
   return '"'..tostring(s or ''):gsub('[\\"\n\r\t]',replacements)..'"'
 end
+local function reportUIError(label,err)
+  -- Registra a mensagem REAL do erro; nao confundir linha do chamador com causa.
+  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s\n%s\n',
+    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),tostring(err))
+  print(message)
+  pcall(write,STATE..'/ui_last_error.log',message)
+end
 local function saveSettings()
   return write(STATE..'/roms_settings.json',string.format('{"language":%s,"theme":%s,"font_size":%s,"layout":%s,"language_chosen":%s}',
     encodeString(settings.language),encodeString(settings.theme),encodeString(settings.font_size),
@@ -1368,13 +1375,6 @@ local function refreshCatalog()
   notice=started and tr('syncing') or tr('network_error')
   noticeTime=started and 2 or 3
   return started==true
-end
-local function reportUIError(label,err)
-  -- Registra a mensagem REAL do erro; nao confundir linha do chamador com causa.
-  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s\n%s\n',
-    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),tostring(err))
-  print(message)
-  pcall(write,STATE..'/ui_last_error.log',message)
 end
 -- Modal separado para nao ultrapassar o limite de 60 upvalues do LuaJIT.
 local function handleGlobalModal(key)
