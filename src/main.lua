@@ -1775,24 +1775,41 @@ local function handleKey(key)
   end
   if key=='b' then back() end
 end
+local function restoreClassicOnInputError(err)
+  print('[STUDIO] Erro de entrada: '..tostring(err):sub(1,350))
+  if settings.layout~='studio' then return end
+  settings.layout='classic'
+  studioNavFocus=false
+  theme.setLayout('classic')
+  saveSettings()
+  notice=tr('network_error')
+  noticeTime=4
+  -- Se a tela caiu por erro de backend, o Inicio permite acessar configuracoes.
+  mainRoute('home')
+end
+local function safeHandleKey(key)
+  if settings.layout~='studio' then return handleKey(key) end
+  local ok,err=pcall(handleKey,key)
+  if not ok then restoreClassicOnInputError(err) end
+end
 function love.keypressed(key,scancode,isrepeat)
   if isrepeat then return end
   -- Teclado para testes no PC. No console, SDL2 envia gamepadpressed.
   local keys={['return']='a',kpenter='a',escape='b',backspace='b',
     up='up',down='down',left='left',right='right',
     pageup='l',pagedown='r',f5='y',y='y',x='x',tab=settings.layout=='studio' and 'select' or 'start'}
-  handleKey(keys[key] or key)
+  safeHandleKey(keys[key] or key)
 end
 function love.gamepadpressed(_,button)
   -- Mapeamento SDL2 unico: direcional, face buttons, L1/R1 e START.
   local keys={a='a',b='b',x='x',y='y',dpup='up',dpdown='down',dpleft='left',dpright='right',
     leftshoulder='l',rightshoulder='r',start='start',back='select'}
-  if keys[button] then handleKey(keys[button]) end
+  if keys[button] then safeHandleKey(keys[button]) end
 end
 function love.textinput(t)
   if screen=='search' and #query<60 and not t:find('[\r\n]') then query=query..t end
 end
-function love.mousepressed(x,y,button)
+local function mousePressedBody(x,y,button)
   if button~=1 then return end
   x,y=display.pointer(x,y)
   if not x then return end -- toque nas margens pretas nao ativa menus
@@ -1967,6 +1984,12 @@ function love.mousepressed(x,y,button)
     if y>228 and y<332 then selectedCard=x<406 and 1 or 2
     elseif y>350 then handleKey('a') end
   end
+end
+
+function love.mousepressed(x,y,button)
+  if settings.layout~='studio' then return mousePressedBody(x,y,button) end
+  local ok,err=pcall(mousePressedBody,x,y,button)
+  if not ok then restoreClassicOnInputError(err) end
 end
 
 function love.wheelmoved(x,y)
