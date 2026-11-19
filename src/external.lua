@@ -19,30 +19,60 @@ local function cached(path)
   local parsed=json.decode(txt)
   return type(parsed)=='table' and parsed or nil
 end
+-- Dados cacheados chegam de JSON externo; nao deixar entradas inválidas
+-- causar indexacao de numero/nil nas telas do LÖVE.
+local function safeGames(raw)
+  local result={}
+  if type(raw)~='table' then return result end
+  for _,game in ipairs(raw) do
+    if type(game)=='table' and type(game.name)=='string' and
+       type(game.game_path)=='string' and #game.name>0 and #game.game_path>0 then
+      if type(game.category)~='string' then game.category='' end
+      if type(game.cover_id)~='string' then game.cover_id=nil end
+      if type(game.image_url)~='string' then game.image_url=nil end
+      if type(game.sha256)~='string' then game.sha256=nil end
+      result[#result+1]=game
+    end
+  end
+  return result
+end
+local function safeCategories(raw)
+  local result={}
+  if type(raw)~='table' then return result end
+  for _,item in ipairs(raw) do
+    if type(item)=='table' and type(item.category)=='string' and
+       #item.category>0 and #item.category<=96 then
+      result[#result+1]=item
+    end
+  end
+  return result
+end
 function M.loadCategories()
   local data=cached(state..'/gamestore_categories.json')
-  if data and type(data.categories)=='table' and #data.categories>0 then
-    M.categories=data.categories
+  if data and type(data.categories)=='table' then
+    local valid=safeCategories(data.categories)
+    if #valid>0 then M.categories=valid end
   end
 end
 function M.loadGames()
   local data=cached(state..'/gamestore_games.json')
   if data and type(data.games)=='table' then
+    local valid=safeGames(data.games)
     local page=tonumber(data.page) or 1
     if M.appendGames and page==M.page+1 and data.category==M.category then
       local seen={}
       for _,g in ipairs(M.games) do seen[g.game_path]=true end
-      for _,g in ipairs(data.games) do
+      for _,g in ipairs(valid) do
         if not seen[g.game_path] then M.games[#M.games+1]=g;seen[g.game_path]=true end
       end
     else
-      M.games=data.games
+      M.games=valid
     end
     M.category=data.category or M.category
     M.page=page
     M.totalPages=math.max(1,tonumber(data.total_pages) or 1)
     M.total=math.max(0,tonumber(data.total) or #M.games)
-    if M.appendGames and #data.games==0 then M.totalPages=M.page end
+    if M.appendGames and #valid==0 then M.totalPages=M.page end
     M.appendGames=false
     return true
   end
@@ -59,12 +89,12 @@ function M.loadSearch()
       for _,g in ipairs(data.games) do
         if not seen[g.game_path] then M.searchResults[#M.searchResults+1]=g;seen[g.game_path]=true end
       end
-    else M.searchResults=data.games end
+    else M.searchResults=valid end
     M.searchQuery=tostring(data.query or M.searchQuery)
     M.searchPage=page
     M.searchTotalPages=math.max(1,tonumber(data.total_pages) or 1)
     M.searchTotal=math.max(0,tonumber(data.total) or #M.searchResults)
-    if M.appendSearch and #data.games==0 then M.searchTotalPages=M.searchPage end
+    if M.appendSearch and #valid==0 then M.searchTotalPages=M.searchPage end
     M.appendSearch=false
     return true
   end
@@ -166,7 +196,8 @@ function M.update()
   local s=json.decode(raw)
   if type(s)~='table' or not M.pending or (s.task and s.task~=M.pending) then return end
   lastStatus=raw
-  M.phase=s.phase or 'idle';M.message=s.message or ''
+  M.phase=type(s.phase)=='string' and s.phase or 'idle'
+  M.message=type(s.message)=='string' and s.message or tostring(s.message or '')
   M.downloaded=tonumber(s.downloaded) or M.downloaded or 0
   M.expected=tonumber(s.expected) or 0
   if M.phase=='cancelled' then
