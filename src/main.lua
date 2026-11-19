@@ -284,9 +284,11 @@ local function chooseCategory()
   end
 end
 local function cachedImage(game)
-  if not game or not game.cover_id or game.cover_id=='' then return nil end
+  if type(game)~='table' then return nil end
   local id=game.cover_id
-  if type(id)~='string' or #id>120 or not id:match('^[%w_%-]+
+  -- O backend gera SHA-1 hexadecimal; nao permitir separadores de caminho.
+  if type(id)~='string' or #id==0 or #id>120 or id:find('[^%w_%-]') then return nil end
+  if coverImages[id] then return coverImages[id] end
   if coverSeen[id] and clock-coverSeen[id]<3 then return nil end
   coverSeen[id]=clock
   local bytes=read(STATE..'/covers/'..id..'.img')
