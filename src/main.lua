@@ -1369,6 +1369,13 @@ local function refreshCatalog()
   noticeTime=started and 2 or 3
   return started==true
 end
+local function reportUIError(label,err)
+  -- Registra a mensagem REAL do erro; nao confundir linha do chamador com causa.
+  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s\n%s\n',
+    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),tostring(err))
+  print(message)
+  pcall(write,STATE..'/ui_last_error.log',message)
+end
 -- Modal separado para nao ultrapassar o limite de 60 upvalues do LuaJIT.
 local function handleGlobalModal(key)
   if updateConfirm then
@@ -1781,13 +1788,6 @@ local function handleKey(key)
     return
   end
   if key=='b' then back() end
-end
-local function reportUIError(label,err)
-  -- Registra a mensagem REAL do erro; nao confundir linha do chamador com causa.
-  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s\n%s\n',
-    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),tostring(err))
-  print(message)
-  pcall(write,STATE..'/ui_last_error.log',message)
 end
 local function restoreClassicOnInputError(err)
   reportUIError('input',err)
