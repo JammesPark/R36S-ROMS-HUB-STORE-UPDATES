@@ -1860,6 +1860,7 @@ function love.gamepadpressed(_,button)
   if keys[button] then safeHandleKey(keys[button]) end
 end
 function love.textinput(t)
+  if type(t)~='string' then return end
   if screen=='search' and #query<60 and not t:find('[\r\n]') then query=query..t end
 end
 local function mousePressedBody(x,y,button)
@@ -2040,9 +2041,16 @@ local function mousePressedBody(x,y,button)
 end
 
 function love.mousepressed(x,y,button)
-  if settings.layout~='studio' then return mousePressedBody(x,y,button) end
-  local ok,err=pcall(mousePressedBody,x,y,button)
-  if not ok then restoreClassicOnInputError(err) end
+  -- O Classico tambem precisa capturar falhas de clique.
+  local ok,err=uiGuard.call('love.mousepressed',
+    function() mousePressedBody(x,y,button) end,reportUIError)
+  if not ok then
+    if settings.layout=='studio' then restoreClassicOnInputError(err)
+    else
+      notice=tr('network_error');noticeTime=4
+      screen='home';stack={};focus='sidebar';menuIndex=1
+    end
+  end
 end
 
 function love.wheelmoved(x,y)
