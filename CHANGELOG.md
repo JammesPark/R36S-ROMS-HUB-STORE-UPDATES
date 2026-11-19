@@ -1,5 +1,16 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.17-beta — 19/11/2026
+- Revisão integral do `main.lua` após erro relatado na linha 1769 da 0.4.16-beta.
+- Guardas de erro para atualização em segundo plano, renderização e clique nos temas Clássico/Studio.
+- Recuperação do estado gráfico quando Canvas/GL ES falha; restaura a pilha push/pop.
+- Modal de backup não permite que A/B executem comandos na tela de trás.
+- Validação de cache remoto e histórico de downloads, evitando objetos não válidos.
+- Identificadores de capa limitados ao formato seguro do cache SHA-1 existente.
+- Log de erros com histórico limitado a 128 KiB, sem apagar imediatamente a primeira exceção.
+- Testes LuaJIT/Lua 5.3: 64 renderizações reais, matriz de controles e falhas simuladas.
+- Preservados layouts, cinco paletas Studio, ROMs, BIOS, SD1/SD2 e mecanismos OTA.
+
 ## 0.4.16-beta — 19/11/2026
 - Segunda correção preventiva para tela azul identificada no ponto de chamada `main.lua:1760` em Rede/Sem conexão.
 - Toda a ação de atualização do catálogo passa a executar sob guarda de exceções com `debug.traceback`.
