@@ -16,6 +16,13 @@ theme=(root/'src/theme.lua').read_text(encoding='utf8')
 assert "pcall(function()" in s and "studioUI.draw(studioContext(),drawClassicVirtual)" in s
 assert "local okBusy,busy=pcall(external.busy)" in s
 assert "local okRefresh,started=pcall(external.refresh)" in s
+assert "local uiGuard=require('ui_error_guard')" in s
+assert "uiGuard.call('refreshCatalog'" in s
+assert "uiGuard.call('handleKey:'" in s
+assert "STATE..'/ui_last_error.log'" in s
+assert s.index("local function reportUIError") < s.index("local function handleKey")
+assert (root/'src/ui_error_guard.lua').exists()
+
 assert "pcall(handleKey,key)" in s and "restoreClassicOnInputError(err)" in s
 assert "pcall(mousePressedBody,x,y,button)" in s
 assert "settings.layout='classic';studioNavFocus=false" in s
