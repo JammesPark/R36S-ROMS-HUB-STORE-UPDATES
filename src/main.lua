@@ -15,6 +15,7 @@ local esUI=require('es_theme_ui') -- temas ES: catálogo ThemeMaster/OGA e insta
 local transferCenter=require('download_center') -- ROM, BIOS, temas e atualização OTA
 local transferQueue=require('transfer_queue') -- fila persistente; motores mantem validacoes
 local studioUI=require('studio_ui') -- segundo layout nativo, sem afetar o classico
+local uiGuard=require('ui_error_guard') -- stack trace seguro, sem tela azul por excecao de input
 local homeLayout=require('home_layout') -- geometria do conceito aprovado em 640x480
 local display=require('display_resolution') -- tela fisica + viewport 640x480
 local HOME=os.getenv('R36S_STORE_HOME') or '/roms/ports/r36s-roms-store'
@@ -1756,8 +1757,14 @@ local function handleKey(key)
     return
   elseif screen=='network' or screen=='offline' then
     if key=='a' or key=='y' then
-      -- Mantem a interface utilizavel mesmo se o backend local falhar.
-      refreshCatalog()
+      -- Protege tambem traducoes/estado ao redor da chamada de rede.
+      -- Se falhar, a mensagem completa vai para state/ui_last_error.log.
+      local ok,err=uiGuard.call('refreshCatalog',
+        function() return refreshCatalog() end,reportUIError)
+      if not ok then
+        notice=tr('network_error')
+        noticeTime=4
+      end
     elseif key=='b' then back() end
     return
   elseif screen=='about' or screen=='help' then
@@ -1775,8 +1782,15 @@ local function handleKey(key)
   end
   if key=='b' then back() end
 end
+local function reportUIError(label,err)
+  -- Registra a mensagem REAL do erro; nao confundir linha do chamador com causa.
+  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s\n%s\n',
+    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),tostring(err))
+  print(message)
+  pcall(write,STATE..'/ui_last_error.log',message)
+end
 local function restoreClassicOnInputError(err)
-  print('[STUDIO] Erro de entrada: '..tostring(err):sub(1,350))
+  reportUIError('input',err)
   if settings.layout~='studio' then return end
   settings.layout='classic'
   studioNavFocus=false
@@ -1789,9 +1803,17 @@ local function restoreClassicOnInputError(err)
   pcall(music.updateRoute,screen)
 end
 local function safeHandleKey(key)
-  if settings.layout~='studio' then return handleKey(key) end
-  local ok,err=pcall(handleKey,key)
-  if not ok then restoreClassicOnInputError(err) end
+  -- Tambem protege o Clássico; a falha anterior apareceu no ramo Rede/offline.
+  local ok,err=uiGuard.call('handleKey:'..tostring(key),
+    function() return handleKey(key) end,reportUIError)
+  if not ok then
+    if settings.layout=='studio' then restoreClassicOnInputError(err)
+    else
+      notice=tr('network_error')
+      noticeTime=4
+      screen='home';stack={};focus='sidebar';menuIndex=1
+    end
+  end
 end
 function love.keypressed(key,scancode,isrepeat)
   if isrepeat then return end
