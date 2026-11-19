@@ -1146,7 +1146,7 @@ function love.load()
   screen='startup'
   if os.getenv('R36S_STORE_OFFLINE_TEST')~='1' then external.enter() end
 end
-function love.update(dt)
+local function updateBody(dt)
   clock=clock+dt
   device.update(dt)
   if screen=='storage' and clock-storageLast>30 then refreshStorage() end
@@ -1214,6 +1214,20 @@ function love.update(dt)
   end
   if external.error and screen=='transferring' then screen='downloads' end
   lastStatus=external.phase
+end
+local updateErrors=0
+function love.update(dt)
+  -- Proteger tambem os ticks em segundo plano: rede, BIOS, OTA e fila.
+  -- O traceback so e registrado nas primeiras falhas consecutivas.
+  local ok,err=uiGuard.call('love.update',function() updateBody(dt) end)
+  if ok then updateErrors=0;return end
+  updateErrors=updateErrors+1
+  if updateErrors<=2 then reportUIError('love.update',err) end
+  if settings.layout=='studio' then
+    settings.layout='classic';studioNavFocus=false
+    pcall(theme.setLayout,'classic');pcall(saveSettings)
+  end
+  screen='home';stack={};focus='sidebar';menuIndex=1
 end
 local function drawClassicVirtual()
   if screen=='startup' then splashPage();ui.statusBar(device.get());return end
@@ -1309,10 +1323,25 @@ local function drawVirtual()
   if storeUpdateModal then storeUpdateOfferPage() end
   if updateConfirm then storeUpdateConfirmPage() end
 end
+local drawErrors=0
 function love.draw()
-  local inCanvas=display.beginFrame()
-  drawVirtual()
-  display.endFrame(inCanvas)
+  -- Mesmo em caso de erro de renderizacao, liberar o framebuffer LÖVE.
+  local ready,inCanvas=pcall(display.beginFrame)
+  if not ready then
+    drawErrors=drawErrors+1
+    if drawErrors<=2 then reportUIError('display.beginFrame',inCanvas) end
+    return
+  end
+  local ok,err=uiGuard.call('love.draw',drawVirtual)
+  local finished,finishErr=pcall(display.endFrame,inCanvas)
+  if ok and finished then drawErrors=0;return end
+  drawErrors=drawErrors+1
+  if drawErrors<=2 then reportUIError('love.draw',not ok and err or finishErr) end
+  if settings.layout=='studio' then
+    settings.layout='classic';studioNavFocus=false
+    pcall(theme.setLayout,'classic');pcall(saveSettings)
+  end
+  screen='home';stack={};focus='sidebar';menuIndex=1
 end
 function love.resize(w,h)
   display.resize(w,h)
