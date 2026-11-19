@@ -1,4 +1,22 @@
-# R36S ROMS STORE — 0.4.15-beta
+# R36S ROMS STORE — 0.4.16-beta
+
+## Reparo e diagnóstico 0.4.16-beta — tela azul em main.lua:1760
+
+A linha relatada executa a atualização do catálogo nas telas Rede e Sem conexão.
+Sem a primeira mensagem da exceção no console, o número da linha **não prova
+qual operação de rede ou estado causou a falha**. Agora o caminho completo
+é protegido com traceback: mesmo que uma função interna ou tradução lance
+erro, o evento de entrada não encerra a interface.
+
+Se uma exceção ocorrer, o aplicativo grava a mensagem completa no arquivo
+`state/ui_last_error.log`, dentro da própria pasta da loja. Esse arquivo
+pequeno contém versão, tela, tema e rastreamento Lua para diagnóstico.
+Envie esse arquivo junto da foto da tela se o problema persistir.
+
+Se o Studio travar antes de permitir atualização, altere exclusivamente
+`"layout":"studio"` para `"layout":"classic"` em
+`state/roms_settings.json`, sem apagar nem substituir outros arquivos.
+O Studio não é removido e continua selecionável após o reparo.
 
 ## Reparação 0.4.15-beta — erro na linha 1743
 
