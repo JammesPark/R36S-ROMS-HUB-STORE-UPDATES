@@ -111,6 +111,10 @@ local id=upvalue(updateBody,'screen')
 local settingsId,settings=upvalue(love.keypressed,'settings')
 local function screen(s) debug.setupvalue(updateBody,id,s) end
 local function currentScreen() return select(2,upvalue(updateBody,'screen')) end
+local keyWrapper=select(2,upvalue(love.keypressed,'safeHandleKey'))
+local keyHandler=select(2,upvalue(keyWrapper,'handleKey'))
+local navFlagIndex=upvalue(keyHandler,'studioNavFocus')
+local function clearNavFocus() debug.setupvalue(keyHandler,navFlagIndex,false) end
 local allScreens={
  'startup','first_language','disclaimer','home','catalog','search_results','search',
  'detail','confirm','downloads','transferring','success','history','installed','favorites',
@@ -137,6 +141,7 @@ for _,layout in ipairs({'classic','studio'}) do
   if route~='about' then -- A abre QR modal persistente; testado isoladamente
    for _,button in ipairs(gamepadKeys) do
     settings.layout=layout;require('theme').setLayout(layout)
+    clearNavFocus()
     screen(route)
     local ok,err=pcall(love.gamepadpressed,nil,button)
     assert(ok,layout..' route='..route..' button='..button..' threw: '..tostring(err))
@@ -147,6 +152,7 @@ for _,layout in ipairs({'classic','studio'}) do
  local logContent=log:read('*a');log:close()
  assert(logContent=='' ,layout..' generated unexpected UI errors during gamepad matrix: '..logContent:sub(1,250))
  for _,s in ipairs({'network','offline'}) do
+  clearNavFocus()
   screen(s)
   local before=ext.refreshes
   local ok,err=pcall(love.gamepadpressed,nil,'a')
