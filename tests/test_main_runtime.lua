@@ -106,9 +106,11 @@ local function upvalue(fn,name)
  end
  error('Nao encontrei upvalue '..name)
 end
-local id=upvalue(love.update,'screen')
+local bodyIndex,updateBody=upvalue(love.update,'updateBody')
+local id=upvalue(updateBody,'screen')
 local settingsId,settings=upvalue(love.keypressed,'settings')
-local function screen(s) debug.setupvalue(love.update,id,s) end
+local function screen(s) debug.setupvalue(updateBody,id,s) end
+local function currentScreen() return select(2,upvalue(updateBody,'screen')) end
 local allScreens={
  'startup','first_language','disclaimer','home','catalog','search_results','search',
  'detail','confirm','downloads','transferring','success','history','installed','favorites',
@@ -145,12 +147,48 @@ for _,layout in ipairs({'classic','studio'}) do
  local ok,err=pcall(love.gamepadpressed,nil,'a')
  assert(ok,layout..' unhandled input error: '..tostring(err))
  updater.localPackages=saved
- local current=select(2,upvalue(love.update,'screen'))
+ local current=currentScreen()
  assert(current=='home','after backend error should return Home')
  local log=assert(io.open(root..'/state/ui_last_error.log','r'))
  local text=log:read('*a');log:close()
  assert(text:find('INJECTED_REAL_INPUT_ERROR',1,true),'real traceback must be persisted')
  assert(text:find('stack traceback',1,true))
 end
+-- Executa eventos de update e draw com falhas reais injetadas.
+screen('home')
+local ok,err=pcall(love.update,0.016)
+assert(ok,'update sem erro: '..tostring(err))
+local deviceModule=package.loaded.device_status
+local savedUpdate=deviceModule.update
+deviceModule.update=function() error('INJECTED_UPDATE_FAILURE') end
+ok,err=pcall(love.update,0.016)
+assert(ok,'update falho nao deve gerar tela azul: '..tostring(err))
+deviceModule.update=savedUpdate
+assert(currentScreen()=='home')
+local latest=assert(io.open(root..'/state/ui_last_error.log','r'))
+local raw=latest:read('*a');latest:close()
+assert(raw:find('INJECTED_UPDATE_FAILURE',1,true),'update deve gravar erro')
+-- Frame renderizado nunca deve propaguar erro, inclusive no Clássico.
+settings.layout='classic';require('theme').setLayout('classic')
+screen('settings')
+local panelOld=ui.panel
+ui.panel=function() error('INJECTED_DRAW_FAILURE') end
+ok,err=pcall(love.draw)
+assert(ok,'draw falho deve recuperar: '..tostring(err))
+ui.panel=panelOld
+assert(currentScreen()=='home','erro de desenho deve voltar ao Inicio')
+latest=assert(io.open(root..'/state/ui_last_error.log','r'))
+raw=latest:read('*a');latest:close()
+assert(raw:find('INJECTED_DRAW_FAILURE',1,true),'draw deve gravar erro')
+-- Clique no tema Clássico também deve ser recuperado.
+local display=require('display_resolution')
+local pointerOld=display.pointer
+display.pointer=function() error('INJECTED_MOUSE_FAILURE') end
+ok,err=pcall(love.mousepressed,200,200,1)
+assert(ok,'mouse no Clássico nao deve gerar tela azul')
+display.pointer=pointerOld
+latest=assert(io.open(root..'/state/ui_last_error.log','r'))
+raw=latest:read('*a');latest:close()
+assert(raw:find('INJECTED_MOUSE_FAILURE',1,true),'mouse deve gravar erro')
 os.getenv=realGetenv
-print('PASS runtime main: '..count..' route renders; network A/Y and catch/recovery both layouts')
+print('PASS runtime main: '..count..' route renders; guarded refresh, update, draw and mouse in LuaJIT/Lua53')
