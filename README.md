@@ -1,4 +1,36 @@
-# R36S ROMS STORE — 0.4.16-beta
+# R36S ROMS STORE — 0.4.17-beta
+
+## Revisão estrutural 0.4.17-beta — tela azul no main.lua
+
+Esta versão revisa todas as rotas do `main.lua` e os módulos conectados.
+A referência à **linha 1769** encontrada na 0.4.16-beta é uma chamada
+intermediária de atualização do catálogo, não identifica isoladamente a causa
+da exceção. A exceção completa agora é registrada em
+`state/ui_last_error.log`, com a versão, tela, tema, hora e traceback.
+
+Correções preventivas e estruturais:
+
+- Guardas de erro para `love.update`, `love.draw`, mouse, teclado e controle,
+  com contagem limitada de erros consecutivos para não travar em log infinito.
+- Estado da renderização LÖVE restaurado mesmo quando Canvas/GL ES falha no
+  início ou no fim de um frame.
+- Confirmações de backup consomem A/B sem encaminhar a tecla à tela anterior.
+- Cache externo de ROMs, categorias, buscas e status valida os tipos recebidos,
+  descartando objetos inválidos antes de desenhar o Catálogo.
+- O histórico de downloads antigo não injeta registros malformados nas telas
+  Instalados, Histórico ou nos contadores do Início.
+- IDs de capa são validados antes de consultar `state/covers/`. O gerador
+  existente utiliza identificadores SHA-1, mantidos sem alteração.
+- Menu Clássico preservado; Studio continua opcional com retorno seguro.
+
+Cobertura automatizada: compilação de todos os módulos com LuaJIT, simulação
+de 32 telas no Clássico e no Studio (64 renderizações), matriz de 10 teclas,
+falhas simuladas de rede, GPU, mouse, atualização e desenho, testes com cache
+malformado e testes existentes de BIOS/ES/OTA/rollback.
+
+**Limitação:** os testes não substituem a validação física no R36S ou em
+outras CFWs. Se aparecer nova tela azul, envie o arquivo
+`state/ui_last_error.log` e a primeira linha da mensagem na tela.
 
 ## Reparo e diagnóstico 0.4.16-beta — tela azul em main.lua:1760
 
