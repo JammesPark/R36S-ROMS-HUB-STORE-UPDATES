@@ -128,6 +128,24 @@ for _,layout in ipairs({'classic','studio'}) do
   assert(ok,layout..' screen='..s..' render: '..tostring(err))
   count=count+1
  end
+ -- Matriz de teclas reais, incluindo menu, catálogo, configurações e OTA.
+ -- Uma exceção silenciosamente recuperada também é detectada pelo log.
+ local logPath=root..'/state/ui_last_error.log'
+ local clean=assert(io.open(logPath,'wb'));clean:close()
+ local gamepadKeys={'a','b','x','y','dpup','dpdown','dpleft','dpright','start','back'}
+ for _,route in ipairs(allScreens) do
+  if route~='about' then -- A abre QR modal persistente; testado isoladamente
+   for _,button in ipairs(gamepadKeys) do
+    settings.layout=layout;require('theme').setLayout(layout)
+    screen(route)
+    local ok,err=pcall(love.gamepadpressed,nil,button)
+    assert(ok,layout..' route='..route..' button='..button..' threw: '..tostring(err))
+   end
+  end
+ end
+ local log=assert(io.open(logPath,'r'))
+ local logContent=log:read('*a');log:close()
+ assert(logContent=='' ,layout..' generated unexpected UI errors during gamepad matrix: '..logContent:sub(1,250))
  for _,s in ipairs({'network','offline'}) do
   screen(s)
   local before=ext.refreshes
