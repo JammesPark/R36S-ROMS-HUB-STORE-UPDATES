@@ -26,13 +26,14 @@ love={
   end,
   push=function(t) calls.push=(calls.push or 0)+1 end,
   pop=function() calls.pop=(calls.pop or 0)+1 end,
-  setCanvas=function(x) calls.setCanvas=x end,
+  setCanvas=function(x) if flags.failSetCanvas then error('GLES FBO failure') end;calls.setCanvas=x end,
   origin=function() end,
   setScissor=function() end,
   clear=function() end,
   setColor=function() end,
   draw=function(c,x,y,r,sx,sy)
    assert(c==canvas)
+   if flags.failDraw then error('GLES draw failed') end
    calls.draw={x=x,y=y,sx=sx,sy=sy}
   end
  }
@@ -74,6 +75,21 @@ V.endFrame(true)
 near(calls.draw.x,160);near(calls.draw.y,0)
 near(calls.draw.sx,1.5);near(calls.draw.sy,1.5)
 assert(calls.push==calls.pop,'render preserva estados graficos')
+flags.failSetCanvas=true
+assert(V.beginFrame()==false and not V.usingCanvas)
+assert(calls.push==calls.pop,'stack must unwind after FBO error')
+flags.failSetCanvas=false
+V.apply(640,480)
+V.resize(1024,768)
+assert(V.usingCanvas)
+flags.failDraw=true
+assert(V.beginFrame()==true)
+V.endFrame(true)
+assert(not V.usingCanvas and calls.push==calls.pop)
+flags.failDraw=false
+V.apply(640,480)
+V.resize(1280,720)
+assert(V.usingCanvas)
 -- Evento de resize do SDL2: recalcula o viewport e transforma clique.
 V.resize(720,720)
 near(V.scale,1.125);near(V.y,90)
