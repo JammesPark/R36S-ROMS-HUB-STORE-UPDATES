@@ -1,0 +1,156 @@
+-- Smoke-test real src/main.lua (no LÖVE device needed), Classic and Studio.
+-- This catches interaction failures missed by compiling bytecode alone.
+package.path='./src/?.lua;'..package.path
+local realGetenv=os.getenv
+local root='/tmp/r36s_main_runtime_smoke'
+os.execute('mkdir -p '..root..'/state')
+os.getenv=function(key)
+ if key=='R36S_STORE_HOME' then return root end
+ if key=='R36S_STORE_OFFLINE_TEST' then return '1' end
+ return realGetenv(key)
+end
+local f=assert(io.open(root..'/state/roms_settings.json','w'))
+f:write('{"language":"pt","theme":"ocean","font_size":"medium","layout":"classic","language_chosen":true}')
+f:close()
+local gfx={}
+setmetatable(gfx,{__index=function() return function() end end})
+function gfx.getDimensions() return 640,480 end
+function gfx.newCanvas(w,h)
+ assert(w==640 and h==480)
+ return {setFilter=function() end}
+end
+function gfx.newQuad(x,y,w,h,iw,ih)
+ assert(iw==640 and ih==480)
+ return {x=x,y=y,w=w,h=h}
+end
+love={graphics=gfx,window={getDesktopDimensions=function() return 640,480 end},
+ filesystem={read=function(_,name) return '0.4.16-beta' end},
+ event={quit=function() end}}
+local ui={}
+setmetatable(ui,{__index=function() return function() end end})
+ui.ellipsize=function(s,n) return tostring(s or ''):sub(1,tonumber(n) or 80) end
+ui.font=function(size)
+ return {getHeight=function() return size or 12 end,
+  getWrap=function(self,str,width) return width,{tostring(str or '')} end}
+end
+ui.paragraph=function(s,x,y) return (tonumber(y) or 0)+20 end
+package.loaded.ui=ui
+local games={
+ {name='ROM de teste 1',category='psx',game_path='https://example.org/1',cover_id=''},
+ {name='ROM de teste 2',category='snes',game_path='https://example.org/2',cover_id=''},
+ {name='ROM de teste 3',category='gba',game_path='https://example.org/3',cover_id=''}
+}
+local ext={games=games,searchResults=games,categories={{category='ALL',count=3},{category='psx',count=1}},
+ category='ALL',page=1,totalPages=1,total=3,searchPage=1,searchTotalPages=1,searchTotal=3,
+ searchQuery='teste',pending=nil,phase='idle',error=false,refreshes=0}
+function ext.init() end
+function ext.update() end
+function ext.enter() end
+function ext.totalCatalog() return 3 end
+function ext.networkState() return 'offline' end
+function ext.busy() return false end
+function ext.refresh() ext.refreshes=ext.refreshes+1;return true end
+function ext.categoryChange(category) ext.category=category;return true end
+function ext.search() return true end
+function ext.inspect() return false end
+function ext.remove() return false end
+function ext.loadNext() return false end
+function ext.searchPageChange() return false end
+package.loaded.external=ext
+local updater={status={phase='idle'},pending=false,offered=true}
+for _,k in ipairs({'init','tick','run','refreshBackups','refreshLocal','deleteBackup'}) do
+ updater[k]=function() end
+end
+updater.tr=function(_,key) return key end
+updater.backups=function() return {} end
+updater.history=function() return {} end
+updater.localPackages=function() return {} end
+updater.downloadLocal=function() return false end
+updater.requestRestore=function() return false end
+updater.install=function() return false end
+package.loaded.store_update=updater
+local bios={init=function() end,tick=function() end}
+package.loaded.bios_manager=bios
+local function passive()
+ return {init=function() end,update=function() end,enter=function() end,
+  draw=function() end,key=function() return true end,
+  mouse=function() return true end,hasModal=function() return false end}
+end
+package.loaded.bios_enhanced_ui=passive()
+package.loaded.es_theme_ui=passive()
+package.loaded.device_status={update=function() end,get=function()
+ return {wifi=true,battery=93,time='10:00'} end}
+package.loaded.music={init=function() end,updateRoute=function() end,stop=function() end}
+local transfers={active={},items={},rows={},scroll=0,selected=1}
+transfers.init=function() end;transfers.poll=function() end
+transfers.current=function() return nil end
+transfers.entries=function() return transfers.rows end
+transfers.selectedItem=function() return nil end
+transfers.label=function(_,key) return key or '?' end
+transfers.rateText=function() return '1 MB/s' end
+transfers.etaText=function() return '00:20' end
+transfers.formatProgress=function() return '0/1',0 end
+transfers.move=function(d) transfers.selected=math.max(1,transfers.selected+d) end
+package.loaded.download_center=transfers
+local queue={items={},init=function() end,visible=function() return {} end,
+ tick=function() end,enqueue=function() return true end,handle=function() return true end}
+package.loaded.transfer_queue=queue
+assert(loadfile('src/main.lua'))()
+assert(type(love.draw)=='function' and type(love.keypressed)=='function')
+assert(pcall(love.load),'main.lua love.load deve iniciar sem falha')
+local function upvalue(fn,name)
+ for i=1,180 do
+  local n,value=debug.getupvalue(fn,i)
+  if not n then break end
+  if n==name then return i,value end
+ end
+ error('Nao encontrei upvalue '..name)
+end
+local id=upvalue(love.update,'screen')
+local settingsId,settings=upvalue(love.keypressed,'settings')
+local function screen(s) debug.setupvalue(love.update,id,s) end
+local allScreens={
+ 'startup','first_language','disclaimer','home','catalog','search_results','search',
+ 'detail','confirm','downloads','transferring','success','history','installed','favorites',
+ 'bios','es_themes','settings','layout_choice','languages','font_size','themes',
+ 'storage','network','updates','update_backups','update_history','update_local',
+ 'about','help','offline','exit_confirm'
+}
+local count=0
+for _,layout in ipairs({'classic','studio'}) do
+ settings.layout=layout
+ require('theme').setLayout(layout)
+ for _,s in ipairs(allScreens) do
+  screen(s)
+  local ok,err=pcall(love.draw)
+  assert(ok,layout..' screen='..s..' render: '..tostring(err))
+  count=count+1
+ end
+ for _,s in ipairs({'network','offline'}) do
+  screen(s)
+  local before=ext.refreshes
+  local ok,err=pcall(love.gamepadpressed,nil,'a')
+  assert(ok,layout..' network handler crash: '..tostring(err))
+  assert(ext.refreshes==before+1,'A deveria atualizar o catalogo')
+  local save=ext.refresh
+  ext.refresh=function() error('simulated offline IO') end
+  ok,err=pcall(love.gamepadpressed,nil,'y')
+  assert(ok,layout..' unavailable backend crash: '..tostring(err))
+  ext.refresh=save
+ end
+ -- Verify global input error guard works for errors outside refreshCatalog.
+ screen('update_local')
+ local saved=updater.localPackages
+ updater.localPackages=function() error('INJECTED_REAL_INPUT_ERROR') end
+ local ok,err=pcall(love.gamepadpressed,nil,'a')
+ assert(ok,layout..' unhandled input error: '..tostring(err))
+ updater.localPackages=saved
+ local current=select(2,upvalue(love.update,'screen'))
+ assert(current=='home','after backend error should return Home')
+ local log=assert(io.open(root..'/state/ui_last_error.log','r'))
+ local text=log:read('*a');log:close()
+ assert(text:find('INJECTED_REAL_INPUT_ERROR',1,true),'real traceback must be persisted')
+ assert(text:find('stack traceback',1,true))
+end
+os.getenv=realGetenv
+print('PASS runtime main: '..count..' route renders; network A/Y and catch/recovery both layouts')
