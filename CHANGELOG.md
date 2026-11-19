@@ -1,5 +1,14 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.16-beta — 19/11/2026
+- Segunda correção preventiva para tela azul identificada no ponto de chamada `main.lua:1760` em Rede/Sem conexão.
+- Toda a ação de atualização do catálogo passa a executar sob guarda de exceções com `debug.traceback`.
+- Entradas de gamepad e teclado ficam protegidas nos temas Clássico e Studio, sem interromper a interface.
+- O erro real, com stack trace e tela/tema, é salvo em `state/ui_last_error.log` para análise se voltar a ocorrer.
+- Studio conserva retorno automático ao Clássico em caso de erro; no Clássico, a interface retorna a Início.
+- Testes offline de rastreamento de exceções e falha de escrita do log; regressões existentes de LuaJIT e OTA preservadas.
+- Sem alteração na fila de downloads, catálogo, BIOS, favoritos ou dados existentes.
+
 ## 0.4.15-beta — 19/11/2026
 - Hotfix para tela azul reportada em main.lua:1743 ao atualizar catálogo nas telas Rede/Sem conexão.
 - Operações de atualização do catálogo agora tratam erros e indisponibilidade do backend sem derrubar a interface.
