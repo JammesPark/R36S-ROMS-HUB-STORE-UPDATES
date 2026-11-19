@@ -113,10 +113,20 @@ function V.beginFrame()
   end
   local g=love.graphics
   g.push('all')
-  g.setCanvas(V.canvas)
-  g.origin()
-  g.setScissor()
-  g.clear(0,0,0,1)
+  local ok,err=pcall(function()
+    g.setCanvas(V.canvas)
+    g.origin()
+    g.setScissor()
+    g.clear(0,0,0,1)
+  end)
+  if not ok then
+    -- Erro de OpenGL ES no meio do frame nao deixa o stack grafico aberto.
+    pcall(g.pop)
+    V.usingCanvas=false;V.canvas=nil
+    V.apply(640,480)
+    print('[DISPLAY] Canvas desabilitado apos erro de GPU: '..tostring(err))
+    return false
+  end
   return true
 end
 function V.endFrame(inCanvas)
@@ -124,11 +134,18 @@ function V.endFrame(inCanvas)
   local g=love.graphics
   g.pop()
   g.push('all')
-  g.origin()
-  g.setScissor()
-  g.clear(0,0,0,1)
-  g.setColor(1,1,1,1)
-  g.draw(V.canvas,V.x,V.y,0,V.scale,V.scale)
+  local ok,err=pcall(function()
+    g.origin()
+    g.setScissor()
+    g.clear(0,0,0,1)
+    g.setColor(1,1,1,1)
+    g.draw(V.canvas,V.x,V.y,0,V.scale,V.scale)
+  end)
   g.pop()
+  if not ok then
+    V.usingCanvas=false;V.canvas=nil
+    V.apply(640,480)
+    print('[DISPLAY] Escala desabilitada apos erro de GPU: '..tostring(err))
+  end
 end
 return V
