@@ -9,6 +9,7 @@ mkdir -p build
 # sem o interpretador; isso NÃO equivale a validar a sintaxe para console.
 if command -v luajit >/dev/null; then
   while IFS= read -r -d '' file; do luajit -b "$file" /tmp/r36s_roms_file.lua.bytecode >/dev/null; done < <(find src -type f -name '*.lua' -print0)
+  luajit tests/test_main_runtime.lua
 else
   echo 'AVISO: LuaJIT ausente; o CI precisa realizar a validação de bytecode antes de publicar.' >&2
   [[ "${CI:-}" != true ]] || exit 1
@@ -23,6 +24,7 @@ if command -v lua5.3 >/dev/null; then
   lua5.3 tests/test_studio_ui.lua
   lua5.3 tests/test_catalog_refresh.lua
   lua5.3 tests/test_ui_error_guard.lua
+  lua5.3 tests/test_main_runtime.lua
   lua5.3 tests/test_ota_bootstrap.lua
 fi
 python3 -m py_compile port/r36s-roms-store/bin/gamestore_source.py port/r36s-roms-store/bin/es_theme_manager.py src/bundled/es_theme_manager.py
