@@ -1,5 +1,13 @@
 # Atualizações — R36S ROMS STORE
 
+## 0.4.15-beta — 19/11/2026
+- Hotfix para tela azul reportada em main.lua:1743 ao atualizar catálogo nas telas Rede/Sem conexão.
+- Operações de atualização do catálogo agora tratam erros e indisponibilidade do backend sem derrubar a interface.
+- Studio passa a proteger a construção de seu contexto gráfico, além do desenho.
+- Entradas de teclado, gamepad e mouse do Studio possuem recuperação segura para o visual Clássico em erros de execução.
+- Preferência de layout, ROMs, BIOS, Temas e mecanismo OTA preservados.
+- Testes automatizados simulam backend ocupado, falha de IO, erro de rede e fluxo normal, além de regressões LuaJIT/OTA.
+
 ## 0.4.14-beta — 18/11/2026
 - Segundo tema visual da loja: **Studio**, com menu superior e 640×480.
 - O tema **Clássico** continua disponível e é o padrão das instalações antigas.
