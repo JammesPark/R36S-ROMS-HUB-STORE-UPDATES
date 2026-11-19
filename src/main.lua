@@ -84,11 +84,25 @@ local function encodeString(s)
   return '"'..tostring(s or ''):gsub('[\\"\n\r\t]',replacements)..'"'
 end
 local function reportUIError(label,err)
-  -- Registra a mensagem REAL do erro; nao confundir linha do chamador com causa.
-  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s\n%s\n',
-    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),tostring(err))
+  -- Preserva a primeira causa e o traceback, em vez de sobrescrever o log
+  -- sempre que o aplicativo recebe outro evento depois da falha.
+  local message=string.format('[UI-ERROR] %s | version=%s | screen=%s | layout=%s | at=%s\n%s\n',
+    tostring(label),appVersion(),tostring(screen),tostring(settings.layout),
+    os.date and os.date('!%Y-%m-%dT%H:%M:%SZ') or '-',tostring(err))
   print(message)
-  pcall(write,STATE..'/ui_last_error.log',message)
+  pcall(function()
+    local path=STATE..'/ui_last_error.log'
+    local f=io.open(path,'ab')
+    if not f then return end
+    local size=f:seek('end') or 0
+    if size>131072 then
+      f:close()
+      f=io.open(path,'wb')
+      if not f then return end
+    end
+    f:write('\n'..message)
+    f:close()
+  end)
 end
 local function saveSettings()
   return write(STATE..'/roms_settings.json',string.format('{"language":%s,"theme":%s,"font_size":%s,"layout":%s,"language_chosen":%s}',
