@@ -1389,7 +1389,8 @@ local function handleGlobalModal(key)
         if storeUpdater.requestRestore(action.backup.id) then love.event.quit() end
       end
     end
-    return
+    -- A/B sao consumidos pelo modal, sem acao na tela por tras.
+    return true
   end
   if storeUpdateModal then
     if key=='a' then storeUpdateModal=false;navigate('updates')
