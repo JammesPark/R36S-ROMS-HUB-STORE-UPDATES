@@ -1,0 +1,7 @@
+{
+  "version": "0.6.7-beta",
+  "url": "https://github.com/JammesPark/R36S-ROMS-HUB-STORE-UPDATES/releases/download/store-v0.6.7-beta/R36S_ROMS_STORE_0.6.7-beta_OTA.zip",
+  "size": 13390549,
+  "sha256": "0c593c0e2244c762d327e3664ae2031c4095465d6dc41c0ec28ab3eb0a6e0931",
+  "notes": "Consulta automática do canal público de atualizações ao abrir a loja, com aviso no menu e instalação confirmada pelo usuário."
+}
