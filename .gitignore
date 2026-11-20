@@ -1,6 +1,0 @@
-build/
-verify/
-__pycache__/
-*.pyc
-.pytest_cache/
-port/r36s-roms-store/game.love
