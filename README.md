@@ -5,3 +5,11 @@ Baixe o **instalador ZIP** na [última versão](https://github.com/JammesPark/R3
 O feed do aplicativo está em `ota/update.json`. O GitHub Actions confere o manifesto e baixa os dois ZIPs publicados para verificar a integridade antes de liberar a atualização aos consoles.
 
 Base R36S PORT HUB por Lag do Lira, sob GPL-3.0. O instalador inclui os avisos de licença dos componentes.
+
+## Contributors
+
+- **[JammesPark](https://github.com/JammesPark)** — criador e responsável pelo projeto.
+- **[ChatGPT (OpenAI)](https://chatgpt.com/)** — colaboração no desenvolvimento assistido por IA desde o início do projeto.
+- **[Lag do Lira](https://youtube.com/@lagdolira)** — autor do projeto-base e dos temas originais.
+
+Veja o [registro completo de contribuições](CONTRIBUTORS.md), incluindo a atribuição das contribuições anteriores e futuras.
