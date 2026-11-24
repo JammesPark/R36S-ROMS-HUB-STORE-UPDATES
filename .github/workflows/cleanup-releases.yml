@@ -1,0 +1,35 @@
+name: Limpeza autorizada de releases antigas
+on:
+  push:
+    branches: ['maintenance/cleanup-releases-20261124']
+    paths: ['.github/workflows/cleanup-releases.yml']
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    if: github.repository == 'JammesPark/R36S-ROMS-HUB-STORE-UPDATES' && github.ref == 'refs/heads/maintenance/cleanup-releases-20261124'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remover apenas releases identificadas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os, json, subprocess
+          repo = os.environ["GITHUB_REPOSITORY"]
+          assert repo == "JammesPark/R36S-ROMS-HUB-STORE-UPDATES"
+          targets = [[451398235,"roms-v0.4.17-beta"],[451338651,"roms-v0.4.16-beta"],[451320966,"roms-v0.4.15-beta"],[450226975,"roms-v0.4.9-beta"],[450193766,"roms-v0.4.8-beta"],[450170202,"roms-v0.4.7-beta"],[450131218,"roms-v0.4.6-beta"],[450080023,"roms-v0.4.5-beta"],[450016820,"roms-v0.4.4-beta"],[450642551,"roms-v0.4.14-beta"],[450518779,"roms-v0.4.13-beta"],[450358299,"roms-v0.4.12-beta"],[450340183,"roms-v0.4.11-beta"],[450302769,"roms-v0.4.10-beta"],[449502827,"roms-v0.4.1-beta"],[449490909,"roms-v0.4.0-beta"],[449461166,"roms-v0.3.1-beta"]]
+          protected = [[457215310,"store-v0.7.0-beta"],[457211461,"store-v0.6.8-beta"],[452088993,"store-v0.6.7-beta"]]
+          def api(path, method="GET"):
+              return subprocess.check_output(["gh","api","--method",method,path], text=True)
+          def release(rid):
+              return json.loads(api(f"repos/{repo}/releases/{rid}"))
+          for rid, tag in targets + protected:
+              assert release(rid)["tag_name"] == tag, (rid, tag)
+          for rid, tag in targets:
+              print(f"Removing release {rid}: {tag}", flush=True)
+              api(f"repos/{repo}/releases/{rid}", "DELETE")
+          for rid, tag in protected:
+              assert release(rid)["tag_name"] == tag
+          print(f"Removed {len(targets)} releases; protected {len(protected)}. No tags deleted.", flush=True)
+          PY
