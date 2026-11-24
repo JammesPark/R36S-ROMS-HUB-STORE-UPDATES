@@ -1,7 +1,7 @@
 {
-  "version": "0.6.7-beta",
-  "url": "https://github.com/JammesPark/R36S-ROMS-HUB-STORE-UPDATES/releases/download/store-v0.6.7-beta/R36S_ROMS_STORE_0.6.7-beta_OTA.zip",
-  "size": 13390549,
-  "sha256": "0c593c0e2244c762d327e3664ae2031c4095465d6dc41c0ec28ab3eb0a6e0931",
-  "notes": "Consulta automática do canal público de atualizações ao abrir a loja, com aviso no menu e instalação confirmada pelo usuário."
+  "version": "0.6.8-beta",
+  "url": "https://github.com/JammesPark/R36S-ROMS-HUB-STORE-UPDATES/releases/download/store-v0.6.8-beta/R36S_ROMS_STORE_0.6.8-beta_OTA.zip",
+  "size": 13146121,
+  "sha256": "c5b59a5096a19eb6cb2e48470e726354f183e8b8496542219df1c2d05cc838dd",
+  "notes": "Nova identidade visual R36S ROM HUB STORE, com logos PNG atualizadas e título de abertura corrigido.\nPulse Edition e Matrix Edition: dois temas integrados, créditos a Lag do Lira, cores personalizadas independentes e azul como paleta original do Pulse.\nMatrix: painel de catálogo, menu 3×3, atalhos Downloads, Favoritos e Instalados, logo ampliada à direita e indicadores à esquerda.\nPulse: logo centralizada com o menu. Sobre: logo e textos do Telegram ampliados.\nCatálogo próprio remoto com validação e cópia local de segurança; modos Lista, Grade e Vitrine nos dois temas, seleção L2/R2 e etiquetas regionais.\nConfigurações e Utilitários em painel lateral; Temas Store, detalhes de ROM e instalados pela loja.\nPreservados SD1/SD2, controles testados, licenças e créditos; atualização automática pelo canal oficial reativada."
 }
