@@ -1,0 +1,8 @@
+{
+  "version": "0.7.1-beta",
+  "url": "https://github.com/JammesPark/R36S-ROM-STORE-UPDATES/releases/download/store-v0.7.1-beta/R36S_ROM_STORE_0.7.1-beta_OTA.zip",
+  "sha256": "92953b9d79c3550fbf8fc4a0048525b7d731652010faa7ed30e735af5c7a9266",
+  "size": 23660616,
+  "min_version": "0.7.1-beta",
+  "notes": "Candidata ao lançamento: nova identidade R36S ROM STORE, Matrix padrão e Pulse opcional, artes HD e pasta r36sromstore.\nConsolidação das correções de temas, downloads e regiões aprovadas no console na Experimental 0.7.0-beta.\nDocumentação em quatro idiomas, créditos, tecnologias utilizadas e roadmap.\nMigração por pacote completo, preservação de dados em instalações parciais e validação do novo canal OTA. O feed das instalações antigas permanece na 0.7.0-beta.\nNova identidade R36S ROM STORE, pasta r36sromstore, migração conservadora e artes HD.\nMatrix padrão, Pulse alternativo e capturas reais das telas iniciais.\nTemas Store com catálogo de 100 temas testado, fila compartilhada com ROMs, instalação de compatibilidade desconhecida com confirmação, atualizações e remoção de temas externos.\nCentral de Downloads com acesso direto aos detalhes, ações de cancelamento e histórico; etiquetas regionais ampliadas.\nTeste físico principal e complementar aprovados, sem validação específica do popup automático de temas e remoção estritamente manual. OTA experimental desligada.\nREADME em quatro idiomas, documentação de suporte e roadmap pós-lançamento. Ainda não é a nova release oficial."
+}
